@@ -1,12 +1,20 @@
+import ctypes.util
+import sys
+from typing import Dict, List, Tuple
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 import streamlit as st
 import plotly.graph_objects as go
 
-from typing import Dict, List, Tuple
-from dataclasses import dataclass
+# ---------- macOS libomp guard ----------
+if sys.platform == "darwin" and not ctypes.util.find_library("omp"):
+    raise OSError(
+        "LightGBM requires the libomp runtime on macOS. Install it via `brew install libomp` "
+        "and restart the app."
+    )
 
-# ML bits
 import lightgbm as lgb
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import train_test_split
@@ -15,62 +23,131 @@ from sklearn.metrics import brier_score_loss
 from sklearn.ensemble import IsolationForest
 import shap
 
-st.set_page_config(page_title="Diabetes Risk + Uncertainty (Streamlit)", layout="wide")
-st.title("🩺 Diabetes Risk + Uncertainty (Streamlit)")
+st.set_page_config(page_title="Mental Health Risk + Uncertainty", layout="wide")
+st.title("🧠 Mental Health Condition Risk + Uncertainty")
 
 # ----------------------------
-# App constants
+# App constants (dataset schema)
 # ----------------------------
 EXPECTED_COLUMNS = [
-    "gender", "age", "hypertension", "heart_disease",
-    "smoking_history", "bmi", "HbA1c_level", "blood_glucose_level", "diabetes"
+    "Gender","Age","Occupation","Country","Consultation_History",
+    "Stress_Level","Sleep_Hours","Work_Hours","Physical_Activity_Hours",
+    "Social_Media_Usage","Diet_Quality","Smoking_Habit","Alcohol_Consumption",
+    "Medication_Usage","Mental_Health_Condition"
 ]
-TARGET_COL = "diabetes"
-CAT_COLS = ["gender", "smoking_history"]
-BIN_COLS = ["hypertension", "heart_disease"]
-NUM_COLS = ["age", "bmi", "HbA1c_level", "blood_glucose_level"]
+TARGET_COL = "Mental_Health_Condition"
+CAT_COLS = [
+    "Gender","Occupation","Country","Consultation_History",
+    "Diet_Quality","Smoking_Habit","Alcohol_Consumption","Medication_Usage"
+]
+BIN_COLS: List[str] = []   # we keep yes/no as categories in this setup
+NUM_COLS = ["Age","Stress_Level","Sleep_Hours","Work_Hours",
+            "Physical_Activity_Hours","Social_Media_Usage"]
 
 UNITS = {
-    "age": "years",
-    "bmi": "kg/m²",
-    "HbA1c_level": "%",
-    "blood_glucose_level": "mg/dL",
-    "hypertension": "0/1",
-    "heart_disease": "0/1",
+    "Age": "years",
+    "Stress_Level": "0–10",
+    "Sleep_Hours": "hours",
+    "Work_Hours": "hours/day",
+    "Physical_Activity_Hours": "hours/week",
+    "Social_Media_Usage": "hours/day",
 }
+
+# ----------------------------
+# Safety helpers
+# ----------------------------
+def _safe_numeric_bounds(series: pd.Series) -> tuple[float, float]:
+    """Return robust (lo, hi) for a numeric-like series, guaranteed finite and lo < hi."""
+    s = pd.to_numeric(series, errors="coerce")
+    s = s[np.isfinite(s)]
+    if s.empty:
+        return 0.0, 1.0
+    lo = float(np.nanpercentile(s, 2))
+    hi = float(np.nanpercentile(s, 98))
+    # fallback to median if needed
+    if not np.isfinite(lo):
+        lo = float(np.nanmedian(s))
+    if not np.isfinite(hi):
+        hi = float(np.nanmedian(s))
+    # ensure spread
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        med = float(np.nanmedian(s))
+        lo, hi = med - 1.0, med + 1.0
+    # cap extreme spans
+    span = hi - lo
+    if not np.isfinite(span) or span <= 0 or span > 1e12:
+        med = float(np.nanmedian(s))
+        lo, hi = med - 1.0, med + 1.0
+    return float(lo), float(hi)
+
+def _sanitize_bounds(lo: float, hi: float, fallback_med: float) -> tuple[float, float]:
+    """Sanitize (lo,hi) just before sampling."""
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        lo, hi = fallback_med - 1.0, fallback_med + 1.0
+    span = hi - lo
+    if not np.isfinite(span) or span <= 0 or span > 1e12:
+        lo, hi = fallback_med - 1.0, fallback_med + 1.0
+    return float(lo), float(hi)
+
+def prob_of_one(cal: CalibratedClassifierCV, X: pd.DataFrame) -> np.ndarray:
+    """
+    Robustly return P(y=1) from a calibrated classifier.
+    Handles single-class calibration edge cases.
+    """
+    p = cal.predict_proba(X)
+    if p.ndim == 1:
+        return p
+    if p.shape[1] == 1:
+        classes = getattr(cal, "classes_", np.array([0]))
+        c = int(classes[0])
+        return p[:, 0] if c == 1 else 1.0 - p[:, 0]
+    classes = getattr(cal, "classes_", np.array([0, 1]))
+    if 1 in classes:
+        j = int(np.where(classes == 1)[0][0])
+        return p[:, j]
+    return p[:, -1]
 
 # ----------------------------
 # Data loading
 # ----------------------------
 st.sidebar.header("Data")
-uploaded = st.sidebar.file_uploader("Upload diabetes_prediction_dataset.csv", type=["csv"])
+uploaded = st.sidebar.file_uploader(
+    "Upload mental_health_data.csv", type=["csv"]
+)
 
 @st.cache_data(show_spinner=True)
 def load_default_sample() -> pd.DataFrame:
-    # tiny synthetic sample if user doesn't upload (keeps app runnable)
+    # tiny synthetic fallback (keeps app runnable if no upload)
     rng = np.random.default_rng(7)
-    n = 1000
+    n = 1500
     df = pd.DataFrame({
-        "gender": rng.choice(["male","female"], size=n),
-        "age": rng.normal(50, 12, size=n).clip(18, 90),
-        "hypertension": rng.choice([0,1], size=n, p=[0.8,0.2]),
-        "heart_disease": rng.choice([0,1], size=n, p=[0.9,0.1]),
-        "smoking_history": rng.choice(["never","former","current","unknown"], size=n, p=[0.5,0.2,0.2,0.1]),
-        "bmi": rng.normal(27, 5, size=n).clip(15, 55),
-        "HbA1c_level": rng.normal(5.8, 1.0, size=n).clip(4.5, 12.5),
-        "blood_glucose_level": rng.normal(115, 30, size=n).clip(60, 260),
+        "Gender": rng.choice(["male","female","non-binary","prefer not to say"], size=n),
+        "Age": rng.integers(18, 66, size=n),
+        "Occupation": rng.choice(["it","healthcare","education","engineering","finance","other"], size=n),
+        "Country": rng.choice(["canada","usa","india","germany","uk","australia","other"], size=n),
+        "Consultation_History": rng.choice(["yes","no","first-time","irregular"], size=n),
+        "Stress_Level": rng.integers(0, 11, size=n),
+        "Sleep_Hours": rng.normal(7.0, 1.4, size=n).clip(3, 12),
+        "Work_Hours": rng.integers(4, 13, size=n),
+        "Physical_Activity_Hours": rng.integers(0, 11, size=n),
+        "Social_Media_Usage": rng.uniform(0.5, 6.0, size=n),
+        "Diet_Quality": rng.choice(["healthy","average","unhealthy"], size=n),
+        "Smoking_Habit": rng.choice(["non-smoker","occasional smoker","regular smoker","heavy smoker"], size=n),
+        "Alcohol_Consumption": rng.choice(["non-drinker","social drinker","regular drinker","heavy drinker"], size=n),
+        "Medication_Usage": rng.choice(["yes","no"], size=n),
     })
-    # synthetic label
+    # synthetic label: higher stress/low sleep -> higher risk
     logit = (
-        -7.0
-        + 0.04*df["age"]
-        + 0.08*(df["bmi"]-25)
-        + 0.7*(df["hypertension"])
-        + 1.2*np.maximum(df["HbA1c_level"]-6.5, 0)
-        + 0.006*(df["blood_glucose_level"]-100)
+        -2.2
+        + 0.18*(df["Stress_Level"])
+        + 0.12*(12 - np.clip(df["Sleep_Hours"], 0, 12))
+        + 0.03*(df["Work_Hours"] - 8)
+        + 0.02*(df["Social_Media_Usage"] - 2)
+        + 0.2*(df["Medication_Usage"].astype(str).str.lower().eq("yes")).astype(int)
+        + 0.1*(df["Consultation_History"].astype(str).str.lower().isin(["yes","irregular"])).astype(int)
     )
     p = 1 / (1 + np.exp(-logit))
-    df["diabetes"] = (rng.uniform(0, 1, size=n) < p).astype(int)
+    df["Mental_Health_Condition"] = (rng.uniform(0, 1, size=n) < p).astype(int)
     return df
 
 if uploaded:
@@ -89,11 +166,16 @@ if missing:
 df = df[EXPECTED_COLUMNS].copy()
 
 # Clean / cast
-df["gender"] = df["gender"].astype(str).str.strip().str.lower()
-df["smoking_history"] = df["smoking_history"].astype(str).str.strip().str.lower()
-for c in BIN_COLS + [TARGET_COL]:
-    df[c] = pd.to_numeric(df[c], errors="coerce").fillna(0).astype(int)
+for c in CAT_COLS + [TARGET_COL]:
+    df[c] = df[c].astype(str).str.strip().str.lower()
 
+# Ensure target is 0/1 (accepts 'yes'/'no' or already numeric)
+if df[TARGET_COL].dtype.kind in "iufc":
+    df[TARGET_COL] = (df[TARGET_COL] > 0).astype(int)
+else:
+    df[TARGET_COL] = df[TARGET_COL].map({"yes":1, "no":0}).fillna(0).astype(int)
+
+# Numerics: coerce + median impute
 for c in NUM_COLS:
     df[c] = pd.to_numeric(df[c], errors="coerce")
     df[c] = df[c].fillna(df[c].median())
@@ -124,6 +206,14 @@ def train_all(df: pd.DataFrame) -> Artifacts:
     X_tr, X_temp, y_tr, y_temp = train_test_split(X, y, test_size=0.40, stratify=y, random_state=42)
     X_val, X_te,  y_val, y_te  = train_test_split(X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=42)
 
+    # guard against single-class validation by retrying a few seeds
+    if (y_tr.nunique() < 2) or (y_val.nunique() < 2):
+        for rs in range(43, 63):
+            X_tr, X_temp, y_tr, y_temp = train_test_split(X, y, test_size=0.40, stratify=y, random_state=rs)
+            X_val, X_te, y_val, y_te = train_test_split(X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=rs)
+            if (y_tr.nunique() == 2) and (y_val.nunique() == 2):
+                break
+
     cat_categories = {c: list(X_tr[c].cat.categories) for c in CAT_COLS}
 
     def fit_lgbm(Xdf, y, seed):
@@ -144,7 +234,8 @@ def train_all(df: pd.DataFrame) -> Artifacts:
         cal.fit(X_val, y_val)
         calibrators.append(cal)
 
-    p_val = np.mean([cal.predict_proba(X_val)[:,1] for cal in calibrators], axis=0)
+    # robust proba extraction
+    p_val = np.mean([prob_of_one(cal, X_val) for cal in calibrators], axis=0)
     _brier = brier_score_loss(y_val, p_val)
 
     # conformal split: nonconformity |y - p|
@@ -158,18 +249,17 @@ def train_all(df: pd.DataFrame) -> Artifacts:
     ood = IsolationForest(n_estimators=300, contamination=0.02, random_state=7)
     ood.fit(Xtr_scaled)
 
-    # numeric slider ranges (2nd–98th)
+    # numeric slider ranges (2nd–98th) with safety guards
     ranges = {}
     for c in NUM_COLS:
-        lo, hi = np.percentile(X_tr[c], [2,98])
-        if hi <= lo: hi = lo + 1.0
-        ranges[c] = [float(lo), float(hi)]
+        lo, hi = _safe_numeric_bounds(X_tr[c])
+        ranges[c] = [lo, hi]
 
     # SHAP (TreeExplainer on first model)
     explainer = shap.TreeExplainer(models[0])
 
     st.sidebar.caption(
-    f"Validation Brier score: {round(float(_brier), 4)} | Conformal q: {round(float(q), 3)}"
+        f"Validation Brier score: {round(float(_brier), 4)} | Conformal q: {round(float(q), 3)}"
     )
     return Artifacts(models, calibrators, q, scaler, ood, cat_categories, ranges, explainer)
 
@@ -188,7 +278,7 @@ def _prepare_df_row(d: Dict) -> pd.DataFrame:
         if X[c].isna().any():
             X[c] = X[c].fillna(df[c].median())
 
-    # binaries
+    # binaries (none in this setup, but kept for API symmetry)
     for c in BIN_COLS:
         X[c] = pd.to_numeric(X[c], errors="coerce").fillna(0).astype(int).clip(0,1)
 
@@ -204,13 +294,12 @@ def _prepare_df_row(d: Dict) -> pd.DataFrame:
                 X[c] = X[c].fillna(cats[0])
         X[c] = X[c].astype("category")
 
-    # order
     feat_order = [c for c in EXPECTED_COLUMNS if c != TARGET_COL]
     return X[feat_order]
 
 def predict_patient(p: Dict) -> Dict:
     X = _prepare_df_row(p)
-    ps = np.stack([cal.predict_proba(X)[:,1] for cal in arts.calibrators], axis=0)
+    ps = np.stack([prob_of_one(cal, X) for cal in arts.calibrators], axis=0)
     p_mean = float(ps.mean())
     p_std = float(ps.std())
     lo = max(0.0, p_mean - arts.conformal_q)
@@ -255,26 +344,46 @@ def toggle_features(p: Dict, removed: List[str]) -> Dict:
 def recommend_tests(p: Dict, candidates: List[str]) -> Dict:
     base = predict_patient(p)
     base_w = base["uncertainty"]["upper"] - base["uncertainty"]["lower"]
-    if base_w <= 0:
-        return {"base_width": base_w, "ranking": []}
+    if base_w <= 0 or not np.isfinite(base_w):
+        return {"base_width": float(base_w), "ranking": []}
+
     rng = np.random.default_rng(123)
     ranking = []
+
     for f in candidates:
-        if f not in NUM_COLS:  # simple MVP on numeric
+        if f not in NUM_COLS:
             continue
-        lo, hi = arts.ranges.get(f, [float(df[f].quantile(0.02)), float(df[f].quantile(0.98))])
-        samples = rng.uniform(lo, hi, size=60)
+
+        # start from trained ranges if available
+        lo, hi = arts.ranges.get(f, (None, None))
+        if lo is None or hi is None:
+            lo, hi = _safe_numeric_bounds(df[f])
+
+        # sanitize once more just before sampling
+        med = float(np.nanmedian(pd.to_numeric(df[f], errors="coerce")))
+        lo, hi = _sanitize_bounds(lo, hi, med)
+
+        # sample safely
+        samples = rng.uniform(float(lo), float(hi), size=60)
+
         widths = []
         for s in samples:
             alt = p.copy(); alt[f] = float(s)
             u = predict_patient(alt)["uncertainty"]
-            widths.append(u["upper"] - u["lower"])
+            width = u["upper"] - u["lower"]
+            if np.isfinite(width):
+                widths.append(width)
+
+        if not widths:
+            continue
+
         exp_w = float(np.mean(widths))
         ranking.append({
             "feature": f,
             "expected_width": exp_w,
-            "expected_reduction": float(max(0.0, base_w - exp_w))
+            "expected_reduction": float(max(0.0, base_w - exp_w)),
         })
+
     ranking.sort(key=lambda d: d["expected_reduction"], reverse=True)
     return {"base_width": float(base_w), "ranking": ranking}
 
@@ -293,14 +402,14 @@ else:
     # categoricals
     for c in CAT_COLS:
         base_patient[c] = st.sidebar.selectbox(c, options=arts.cat_categories[c], index=0)
-    # binaries
-    for c in BIN_COLS:
-        base_patient[c] = st.sidebar.selectbox(c, options=[0,1], index=0)
     # numerics
     for c in NUM_COLS:
         lo, hi = arts.ranges[c]
-        base_patient[c] = st.sidebar.slider(f"{c} ({UNITS.get(c,'')})", min_value=float(lo), max_value=float(hi),
-                                            value=float(np.mean([lo,hi])))
+        base_patient[c] = st.sidebar.slider(
+            f"{c} ({UNITS.get(c,'')})",
+            min_value=float(lo), max_value=float(hi),
+            value=float(np.mean([lo,hi]))
+        )
 
 # ----------------------------
 # Prediction card
@@ -340,7 +449,9 @@ with left:
 with right:
     st.subheader("What-If analysis")
     if pred:
-        probe_feat = st.selectbox("Feature", NUM_COLS + CAT_COLS + BIN_COLS, index=NUM_COLS.index("HbA1c_level") if "HbA1c_level" in NUM_COLS else 0)
+        default_feat = "Stress_Level" if "Stress_Level" in NUM_COLS else NUM_COLS[0]
+        probe_feat = st.selectbox("Feature", NUM_COLS + CAT_COLS + BIN_COLS,
+                                  index=(NUM_COLS.index(default_feat) if default_feat in NUM_COLS else 0))
         if probe_feat in NUM_COLS:
             lo, hi = arts.ranges[probe_feat]
             steps = st.slider("Steps", 10, 80, 30, 5)
@@ -364,7 +475,7 @@ with right:
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("For MVP, the what-if curve is numeric features only. Toggle binary/categorical below.")
+            st.info("For now, the what-if curve is numeric features only. Toggle categorical features below.")
 
 st.divider()
 
@@ -391,8 +502,8 @@ st.divider()
 # ----------------------------
 # Recommend tests to repeat
 # ----------------------------
-st.subheader("Tests to consider repeating (Expected Uncertainty Reduction)")
-default_candidates = ["HbA1c_level","blood_glucose_level","bmi","age"]
+st.subheader("Measurements to consider repeating (Expected Uncertainty Reduction)")
+default_candidates = ["Stress_Level","Sleep_Hours","Work_Hours","Social_Media_Usage","Physical_Activity_Hours","Age"]
 cands = st.multiselect("Candidate numeric features", options=NUM_COLS, default=[c for c in default_candidates if c in NUM_COLS])
 
 if st.button("Rank candidates", disabled=(len(cands)==0)):
@@ -403,8 +514,15 @@ if reco:
     base_w = reco["base_width"]
     df_rank = pd.DataFrame(reco["ranking"])
     if len(df_rank):
-        df_rank["Reduction (%)"] = (base_w - df_rank["expected_width"]).clip(lower=0) / max(base_w,1e-9) * 100
-        df_rank = df_rank.rename(columns={"feature":"Feature","expected_width":"Expected Band Width","expected_reduction":"Expected Reduction"})
-        st.dataframe(df_rank[["Feature","Expected Band Width","Expected Reduction","Reduction (%)"]], use_container_width=True, hide_index=True)
+        df_rank = df_rank.rename(columns={
+            "feature":"Feature",
+            "expected_width":"Expected Band Width",
+            "expected_reduction":"Expected Reduction"
+        })
+        df_rank["Reduction (%)"] = (
+            (base_w - df_rank["Expected Band Width"]).clip(lower=0) / max(base_w,1e-9) * 100
+        )
+        st.dataframe(df_rank[["Feature","Expected Band Width","Expected Reduction","Reduction (%)"]],
+                     use_container_width=True, hide_index=True)
     else:
         st.info("No numeric candidates produced a calculable reduction.")

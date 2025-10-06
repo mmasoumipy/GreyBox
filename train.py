@@ -1,5 +1,11 @@
-import json, joblib, numpy as np, pandas as pd
+import ctypes.util
+import json
+import joblib
+import numpy as np
+import pandas as pd
+import sys
 from pathlib import Path
+
 from sklearn.model_selection import train_test_split
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import brier_score_loss
@@ -7,48 +13,63 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
 import lightgbm as lgb
 
-DATA_PATH = "data/diabetes_prediction_dataset.csv"
+# ---------- macOS libomp guard ----------
+if sys.platform == "darwin" and not ctypes.util.find_library("omp"):
+    raise OSError(
+        "LightGBM requires the libomp runtime on macOS. Install it via `brew install libomp` "
+        "before running training."
+    )
+
+# ---------- Paths ----------
+DATA_PATH = "data/mental_health_data.csv"
 ART = Path("artifacts"); ART.mkdir(exist_ok=True, parents=True)
 
 # ---------- 1) Load & clean ----------
 df = pd.read_csv(DATA_PATH)
 
-# Expected columns
-target_col = "diabetes"
+# Use Mental_Health_Condition as binary target, exclude identifiers/leaky fields
+target_col = "Mental_Health_Condition"
+
 raw_feature_cols = [
-    "gender", "age", "hypertension", "heart_disease",
-    "smoking_history", "bmi", "HbA1c_level", "blood_glucose_level"
+    # categoricals
+    "Gender", "Occupation", "Country",
+    "Consultation_History", "Diet_Quality",
+    "Smoking_Habit", "Alcohol_Consumption", "Medication_Usage",
+    # numerics
+    "Age", "Stress_Level", "Sleep_Hours",
+    "Work_Hours", "Physical_Activity_Hours", "Social_Media_Usage",
 ]
 
-# Basic cleaning / typing
+# Subset & basic cleaning
 df = df[raw_feature_cols + [target_col]].copy()
-# Standardize categorical values
-df["gender"] = df["gender"].str.strip().str.lower()
-df["smoking_history"] = df["smoking_history"].astype(str).str.strip().str.lower()
 
-# Map binary ints
-for b in ["hypertension", "heart_disease", target_col]:
-    df[b] = df[b].astype(int)
+# Normalize strings (lowercase/trim) for categoricals and target
+for c in [
+    "Gender","Occupation","Country","Consultation_History",
+    "Diet_Quality","Smoking_Habit","Alcohol_Consumption",
+    "Medication_Usage", target_col
+]:
+    df[c] = df[c].astype(str).str.strip().str.lower()
 
-# Cast categoricals (LightGBM can use pandas category dtype)
-cat_cols = ["gender", "smoking_history"]
+# Map target yes/no -> 1/0
+df[target_col] = df[target_col].map({"yes": 1, "no": 0}).astype(int)
+
+# Declare dtypes
+cat_cols = [
+    "Gender","Occupation","Country","Consultation_History",
+    "Diet_Quality","Smoking_Habit","Alcohol_Consumption","Medication_Usage"
+]
 for c in cat_cols:
     df[c] = df[c].astype("category")
 
-num_cols = ["age", "bmi", "HbA1c_level", "blood_glucose_level"]
-
-# Handle missing values (simple strategy for MVP)
+num_cols = [
+    "Age","Stress_Level","Sleep_Hours",
+    "Work_Hours","Physical_Activity_Hours","Social_Media_Usage"
+]
+# Coerce numerics & impute median
 for c in num_cols:
     df[c] = pd.to_numeric(df[c], errors="coerce")
     df[c] = df[c].fillna(df[c].median())
-
-# For categoricals, fill missing with most frequent
-for c in cat_cols:
-    if df[c].isna().any():
-        mode = df[c].mode(dropna=True)
-        df[c] = df[c].cat.add_categories(["unknown"]).fillna("unknown").astype("category")
-        if not mode.empty:
-            df.loc[df[c].isna(), c] = mode.iloc[0]
 
 X = df[raw_feature_cols].copy()
 y = df[target_col].astype(int)
@@ -98,7 +119,6 @@ val_scores = np.abs(y_val.values - p_val)
 q = float(np.quantile(val_scores, 1 - alpha))
 
 # ---------- 6) Train OOD detector on TRAIN numeric features ----------
-# Use StandardScaler on numerical columns only
 scaler = StandardScaler().fit(X_tr[num_cols])
 Xtr_num_scaled = scaler.transform(X_tr[num_cols])
 
@@ -114,24 +134,22 @@ ood.fit(Xtr_num_scaled)
 ranges = {}
 for c in num_cols:
     lo, hi = np.percentile(X_tr[c], [2, 98])
-    # ensure valid range (avoid equal bounds)
     if hi <= lo:
         hi = lo + 1.0
     ranges[c] = [float(lo), float(hi)]
 
-# Binary indicators and categoricals get suggested sets, not ranges
 units = {
-    "age": "years",
-    "bmi": "kg/m²",
-    "HbA1c_level": "%",
-    "blood_glucose_level": "mg/dL",  # adjust if your units differ
-    "hypertension": "0/1",
-    "heart_disease": "0/1",
+    "Age": "years",
+    "Stress_Level": "0–10",
+    "Sleep_Hours": "hours",
+    "Work_Hours": "hours/day",
+    "Physical_Activity_Hours": "hours/week",
+    "Social_Media_Usage": "hours/day",
 }
 feature_meta = {
     "features": raw_feature_cols,
     "numeric_features": num_cols,
-    "binary_features": ["hypertension", "heart_disease"],
+    "binary_features": [],  # treat yes/no categories as categoricals here
     "categorical_features": cat_cols,
     "categories": cat_categories,     # for casting at inference
     "units": units,
@@ -146,7 +164,7 @@ joblib.dump(ood, ART / "ood.pkl")
 json.dump({"alpha": alpha, "q": q}, open(ART / "conformal.json", "w"))
 json.dump(feature_meta, open(ART / "feature_meta.json", "w"))
 
-# Train stats for simple imputation in inference
+# Train stats for simple imputation in inference (if you need them later)
 train_stats = {
     "numeric_median": {c: float(X_tr[c].median()) for c in num_cols}
 }

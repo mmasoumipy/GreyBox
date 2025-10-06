@@ -1,1 +1,1 @@
-{"numeric_median": {"age": 43.0, "bmi": 27.32, "HbA1c_level": 5.8, "blood_glucose_level": 140.0}}
+{"numeric_median": {"Age": 41.0, "Stress_Level": NaN, "Sleep_Hours": 7.0, "Work_Hours": 55.0, "Physical_Activity_Hours": 5.0, "Social_Media_Usage": 3.2}}
