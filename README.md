@@ -1,5 +1,5 @@
 This project packages a small end-to-end workflow for training an
-ensemble diabetes risk model, serving calibrated predictions with
+ensemble stress risk model, serving calibrated predictions with
 uncertainty estimates, and providing an interactive Streamlit UI for
 what-if analysis.
 
