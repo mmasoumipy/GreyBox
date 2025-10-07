@@ -192,6 +192,7 @@ class Artifacts:
     models: List[lgb.LGBMClassifier]
     calibrators: List[CalibratedClassifierCV]
     conformal_q: float
+    conformal_eps: float
     scaler: StandardScaler
     ood: IsolationForest
     cat_categories: Dict[str, List[str]]
@@ -229,18 +230,26 @@ def train_all(df: pd.DataFrame) -> Artifacts:
     models = [fit_lgbm(X_tr, y_tr, s) for s in seeds]
 
     calibrators = []
+    p_val_stack = []
     for m in models:
         cal = CalibratedClassifierCV(m, method="isotonic", cv="prefit")
         cal.fit(X_val, y_val)
         calibrators.append(cal)
+        p_val_stack.append(prob_of_one(cal, X_val))
 
     # robust proba extraction
-    p_val = np.mean([prob_of_one(cal, X_val) for cal in calibrators], axis=0)
+    p_val_stack = np.stack(p_val_stack, axis=0)
+    p_val = np.mean(p_val_stack, axis=0)
+    ens_std_val = np.std(p_val_stack, axis=0)
+    aleatoric_val = np.mean(p_val_stack * (1 - p_val_stack), axis=0)
     _brier = brier_score_loss(y_val, p_val)
 
-    # conformal split: nonconformity |y - p|
+    # conformal split with variance scaling so extreme probabilities
+    # get tighter bands than ambiguous ~0.5 predictions.
     alpha = 0.10
-    val_scores = np.abs(y_val.values - p_val)
+    eps = 1e-6
+    total_scale = np.sqrt(np.clip(aleatoric_val + ens_std_val**2, 0.0, None) + eps)
+    val_scores = np.abs(y_val.values - p_val) / total_scale
     q = float(np.quantile(val_scores, 1 - alpha))
 
     # OOD on numeric space
@@ -259,9 +268,10 @@ def train_all(df: pd.DataFrame) -> Artifacts:
     explainer = shap.TreeExplainer(models[0])
 
     st.sidebar.caption(
-        f"Validation Brier score: {round(float(_brier), 4)} | Conformal q: {round(float(q), 3)}"
+        "Validation Brier score: "
+        f"{round(float(_brier), 4)} | Conformal q*: {round(float(q), 3)}"
     )
-    return Artifacts(models, calibrators, q, scaler, ood, cat_categories, ranges, explainer)
+    return Artifacts(models, calibrators, q, eps, scaler, ood, cat_categories, ranges, explainer)
 
 arts = train_all(df)
 
@@ -302,8 +312,11 @@ def predict_patient(p: Dict) -> Dict:
     ps = np.stack([prob_of_one(cal, X) for cal in arts.calibrators], axis=0)
     p_mean = float(ps.mean())
     p_std = float(ps.std())
-    lo = max(0.0, p_mean - arts.conformal_q)
-    hi = min(1.0, p_mean + arts.conformal_q)
+    aleatoric = float(np.mean(ps * (1 - ps)))
+    total_scale = float(np.sqrt(max(aleatoric + p_std**2, 0.0) + arts.conformal_eps))
+    delta = arts.conformal_q * total_scale
+    lo = max(0.0, p_mean - delta)
+    hi = min(1.0, p_mean + delta)
 
     # SHAP local (class 1)
     shap_vals = arts.explainer.shap_values(X)
@@ -318,9 +331,16 @@ def predict_patient(p: Dict) -> Dict:
     score = arts.ood.decision_function(arts.scaler.transform(Xs))[0]  # lower -> more OOD
     ood_flag = bool(score < -0.1)
 
+    aleatoric_std = float(np.sqrt(max(aleatoric, 0.0)))
+
     return {
         "risk": p_mean,
-        "uncertainty": {"lower": lo, "upper": hi, "epistemic_std": p_std},
+        "uncertainty": {
+            "lower": lo,
+            "upper": hi,
+            "aleatoric_std": aleatoric_std,
+            "epistemic_std": p_std,
+        },
         "drivers": drivers,
         "ood_flag": ood_flag
     }
@@ -429,12 +449,13 @@ with left:
         ep = pred["uncertainty"]["epistemic_std"]
         ood = pred["ood_flag"]
 
-        c1,c2,c3,c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         to_pct = lambda x: f"{round(100*x)}%"
         c1.metric("Risk", to_pct(risk))
         c2.metric("Uncertainty band", f"{to_pct(lo)} → {to_pct(hi)}")
         c3.metric("Band width", to_pct(hi - lo))
-        c4.metric("Epistemic σ", f"{ep:.3f}")
+        c4.metric("Aleatoric σ", f"{pred['uncertainty']['aleatoric_std']:.3f}")
+        c5.metric("Epistemic σ", f"{ep:.3f}")
 
         if ood:
             st.warning("⚠️ Possible distribution shift — consider human review/alternate pathway.")
@@ -449,6 +470,111 @@ with left:
 with right:
     st.subheader("What-If analysis")
     if pred:
+        st.markdown(
+            "Build a small scenario by tweaking one feature at a time to see "
+            "how the prediction and its uncertainty react."
+        )
+        feature_options = NUM_COLS + BIN_COLS + CAT_COLS
+        with st.form("what_if_form"):
+            chosen_feat = st.selectbox("Feature to tweak", feature_options)
+            base_val = base_patient.get(chosen_feat)
+            if chosen_feat in NUM_COLS:
+                lo, hi = arts.ranges[chosen_feat]
+                default_val = float(base_val) if base_val is not None else float(np.mean([lo, hi]))
+                default_val = float(np.clip(default_val, lo, hi))
+                new_val = st.slider(
+                    f"New {chosen_feat}",
+                    min_value=float(lo),
+                    max_value=float(hi),
+                    value=default_val,
+                )
+            elif chosen_feat in BIN_COLS:
+                default_val = int(base_val) if base_val is not None else 0
+                new_val = st.radio(
+                    f"New {chosen_feat}",
+                    options=[0, 1],
+                    format_func=lambda v: "yes" if v == 1 else "no",
+                    index=default_val,
+                    horizontal=True,
+                )
+            else:
+                cats = arts.cat_categories[chosen_feat]
+                base_val = str(base_val) if base_val is not None else cats[0]
+                base_val = base_val if base_val in cats else cats[0]
+                new_val = st.selectbox(
+                    f"New {chosen_feat}",
+                    options=cats,
+                    index=cats.index(base_val),
+                )
+            submitted = st.form_submit_button("Run scenario")
+
+        if submitted:
+            scenario_result = what_if(base_patient, {chosen_feat: new_val})
+            st.session_state["what_if_point"] = {
+                "feature": chosen_feat,
+                "old_value": base_val,
+                "new_value": new_val,
+                "result": scenario_result,
+            }
+
+        scenario = st.session_state.get("what_if_point")
+        if scenario:
+            before = scenario["result"]["before"]
+            after = scenario["result"]["after"]
+            width_before = before["uncertainty"]["upper"] - before["uncertainty"]["lower"]
+            width_after = after["uncertainty"]["upper"] - after["uncertainty"]["lower"]
+
+            delta_risk = after["risk"] - before["risk"]
+            delta_width = width_after - width_before
+
+            c1, c2, c3 = st.columns(3)
+            pct = lambda x: f"{round(100*x, 1)}%"
+            c1.metric("Risk after tweak", pct(after["risk"]), f"{delta_risk*100:.1f} pp")
+            c2.metric(
+                "New uncertainty band",
+                f"{pct(after['uncertainty']['lower'])} → {pct(after['uncertainty']['upper'])}",
+                f"{delta_width*100:.1f} pp",
+            )
+            c3.metric("New band width", pct(width_after), f"{delta_width*100:.1f} pp")
+
+            if after.get("ood_flag") and not before.get("ood_flag"):
+                st.warning(
+                    "The tweaked scenario looks unusual compared to the training data."
+                )
+
+            alea_before = before["uncertainty"].get("aleatoric_std")
+            alea_after = after["uncertainty"].get("aleatoric_std")
+            epi_before = before["uncertainty"].get("epistemic_std")
+            epi_after = after["uncertainty"].get("epistemic_std")
+            col_sigma_a, col_sigma_b = st.columns(2)
+            col_sigma_a.metric(
+                "Aleatoric σ",
+                f"{alea_after:.3f}",
+                f"{(alea_after - alea_before):+.3f}",
+            )
+            col_sigma_b.metric(
+                "Epistemic σ",
+                f"{epi_after:.3f}",
+                f"{(epi_after - epi_before):+.3f}",
+            )
+
+            st.caption(
+                f"Changed {scenario['feature']} from {scenario['old_value']} → {scenario['new_value']}."
+            )
+
+            col_before, col_after = st.columns(2)
+            drv_cols = ["feature", "shap_value", "direction"]
+            before_df = pd.DataFrame(before["drivers"], columns=["feature", "shap_value"])
+            before_df["direction"] = np.where(before_df["shap_value"] >= 0, "↑ risk", "↓ risk")
+            after_df = pd.DataFrame(after["drivers"], columns=["feature", "shap_value"])
+            after_df["direction"] = np.where(after_df["shap_value"] >= 0, "↑ risk", "↓ risk")
+            with col_before:
+                st.markdown("**Baseline drivers**")
+                st.dataframe(before_df[drv_cols], hide_index=True, use_container_width=True)
+            with col_after:
+                st.markdown("**Scenario drivers**")
+                st.dataframe(after_df[drv_cols], hide_index=True, use_container_width=True)
+
         default_feat = "Stress_Level" if "Stress_Level" in NUM_COLS else NUM_COLS[0]
         probe_feat = st.selectbox("Feature", NUM_COLS + CAT_COLS + BIN_COLS,
                                   index=(NUM_COLS.index(default_feat) if default_feat in NUM_COLS else 0))

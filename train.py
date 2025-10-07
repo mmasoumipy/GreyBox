@@ -104,18 +104,29 @@ models = [fit_lgbm(X_tr, y_tr, s) for s in seeds]
 
 # ---------- 4) Calibrate each model on validation ----------
 calibrators = []
+p_val_stack = []
 for m in models:
     cal = CalibratedClassifierCV(m, method="isotonic", cv="prefit")
     cal.fit(X_val, y_val)
     calibrators.append(cal)
+    p_val_stack.append(cal.predict_proba(X_val)[:, 1])
 
-p_val = np.mean([cal.predict_proba(X_val)[:, 1] for cal in calibrators], axis=0)
+p_val_stack = np.stack(p_val_stack, axis=0)
+p_val = np.mean(p_val_stack, axis=0)
+ens_std_val = np.std(p_val_stack, axis=0)
+aleatoric_val = np.mean(p_val_stack * (1 - p_val_stack), axis=0)
 print("Brier (val):", brier_score_loss(y_val, p_val))
 
 # ---------- 5) Conformal band (split) ----------
-# Nonconformity = |y - p|
+# We scale residuals by the Bernoulli variance p(1-p) so that
+# samples near the extremes get naturally narrower bands than
+# uncertain ~0.5 predictions.  This mitigates the "constant width"
+# issue that vanilla absolute residuals can exhibit.
+
 alpha = 0.10  # target ~90% coverage
-val_scores = np.abs(y_val.values - p_val)
+eps = 1e-6
+total_scale = np.sqrt(np.clip(aleatoric_val + ens_std_val**2, 0.0, None) + eps)
+val_scores = np.abs(y_val.values - p_val) / total_scale
 q = float(np.quantile(val_scores, 1 - alpha))
 
 # ---------- 6) Train OOD detector on TRAIN numeric features ----------
@@ -161,7 +172,7 @@ joblib.dump(models, ART / "models.pkl")
 joblib.dump(calibrators, ART / "calibrators.pkl")
 joblib.dump(scaler, ART / "scaler.pkl")
 joblib.dump(ood, ART / "ood.pkl")
-json.dump({"alpha": alpha, "q": q}, open(ART / "conformal.json", "w"))
+json.dump({"alpha": alpha, "q_scaled": q, "epsilon": eps}, open(ART / "conformal.json", "w"))
 json.dump(feature_meta, open(ART / "feature_meta.json", "w"))
 
 # Train stats for simple imputation in inference (if you need them later)

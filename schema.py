@@ -10,6 +10,22 @@ class PredictResponse(BaseModel):
     drivers: List[List]          # [ [feature, shap_value], ... ]
     ood_flag: bool
 
+class WhatIfResponse(BaseModel):
+    before: PredictResponse
+    after: PredictResponse
+
+class ToggleResponse(PredictResponse):
+    """Identical payload to PredictResponse."""
+
+class RecommendCandidate(BaseModel):
+    feature: str
+    expected_width: float
+    expected_reduction: float
+
+class RecommendResponse(BaseModel):
+    base_width: float
+    ranking: List[RecommendCandidate]
+
 class WhatIfRequest(BaseModel):
     patient: Dict[str, object]
     tweaks: Dict[str, object]
