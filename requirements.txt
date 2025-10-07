@@ -9,3 +9,5 @@ shap
 joblib
 streamlit
 plotly
+matplotlib
+seaborn
