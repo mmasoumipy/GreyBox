@@ -24,8 +24,10 @@ streamlit run streamlit_app.py
 The UI lets you upload a dataset (or use a synthetic fallback), inspect
 predictions for a selected patient, view conformal uncertainty bands,
 see SHAP local feature attributions, and explore what-if scenarios for
-individual features. You can also simulate dropping features and obtain
-expected reductions in uncertainty from re-running tests.
+individual features.  The updated scenario builder highlights how risk,
+aleatoric vs epistemic uncertainty, and top drivers change under a
+tweak. You can also simulate dropping features and obtain expected
+reductions in uncertainty from re-running tests.
 
 ## 3. Serve the API
 
@@ -35,8 +37,8 @@ uvicorn api:app --reload
 
 The FastAPI service exposes:
 
-- `POST /predict` – return risk, conformal bounds, epistemic proxy, and
-  top SHAP drivers for a patient.
+- `POST /predict` – return risk, conformal bounds, separate aleatoric &
+  epistemic proxies, and top SHAP drivers for a patient.
 - `POST /what-if` – compare predictions before/after tweaking feature
   values.
 - `POST /toggle` – simulate removing information by resetting selected
