@@ -1,1 +1,20 @@
-{"numeric_median": {"Age": 41.0, "Stress_Level": NaN, "Sleep_Hours": 7.0, "Work_Hours": 55.0, "Physical_Activity_Hours": 5.0, "Social_Media_Usage": 3.2}}
+{
+  "numeric_median": {
+    "Age": 39.0,
+    "Stress_Level": 5.0,
+    "Sleep_Hours": 7.1,
+    "Work_Hours": 46.0,
+    "Physical_Activity_Hours": 2.0,
+    "Social_Media_Usage": 1.9
+  },
+  "categorical_modes": {
+    "Gender": "female",
+    "Occupation": "other",
+    "Country": "usa",
+    "Consultation_History": "no",
+    "Diet_Quality": "average",
+    "Smoking_Habit": "non-smoker",
+    "Alcohol_Consumption": "social drinker",
+    "Medication_Usage": "no"
+  }
+}

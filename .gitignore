@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+diagnose_data.py
+data_diagnostic.png
+generate_realistic_dataset.py
+/data/mental_health_data_realistic.csv
+

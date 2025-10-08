@@ -1,1 +1,122 @@
-{"features": ["Gender", "Occupation", "Country", "Consultation_History", "Diet_Quality", "Smoking_Habit", "Alcohol_Consumption", "Medication_Usage", "Age", "Stress_Level", "Sleep_Hours", "Work_Hours", "Physical_Activity_Hours", "Social_Media_Usage"], "numeric_features": ["Age", "Stress_Level", "Sleep_Hours", "Work_Hours", "Physical_Activity_Hours", "Social_Media_Usage"], "binary_features": [], "categorical_features": ["Gender", "Occupation", "Country", "Consultation_History", "Diet_Quality", "Smoking_Habit", "Alcohol_Consumption", "Medication_Usage"], "categories": {"Gender": ["female", "male", "non-binary", "prefer not to say"], "Occupation": ["education", "engineering", "finance", "healthcare", "it", "other", "sales"], "Country": ["australia", "canada", "germany", "india", "other", "uk", "usa"], "Consultation_History": ["no", "yes"], "Diet_Quality": ["average", "healthy", "unhealthy"], "Smoking_Habit": ["heavy smoker", "non-smoker", "occasional smoker", "regular smoker"], "Alcohol_Consumption": ["heavy drinker", "non-drinker", "regular drinker", "social drinker"], "Medication_Usage": ["no", "yes"]}, "units": {"Age": "years", "Stress_Level": "0\u201310", "Sleep_Hours": "hours", "Work_Hours": "hours/day", "Physical_Activity_Hours": "hours/week", "Social_Media_Usage": "hours/day"}, "ranges": {"Age": [19.0, 65.0], "Stress_Level": [NaN, NaN], "Sleep_Hours": [4.1, 9.9], "Work_Hours": [31.0, 80.0], "Physical_Activity_Hours": [0.0, 10.0], "Social_Media_Usage": [0.6, 5.9]}}
+{
+  "features": [
+    "Age",
+    "Gender",
+    "Occupation",
+    "Country",
+    "Consultation_History",
+    "Stress_Level",
+    "Sleep_Hours",
+    "Work_Hours",
+    "Physical_Activity_Hours",
+    "Social_Media_Usage",
+    "Diet_Quality",
+    "Smoking_Habit",
+    "Alcohol_Consumption",
+    "Medication_Usage"
+  ],
+  "numeric_features": [
+    "Age",
+    "Stress_Level",
+    "Sleep_Hours",
+    "Work_Hours",
+    "Physical_Activity_Hours",
+    "Social_Media_Usage"
+  ],
+  "binary_features": [],
+  "categorical_features": [
+    "Gender",
+    "Occupation",
+    "Country",
+    "Consultation_History",
+    "Diet_Quality",
+    "Smoking_Habit",
+    "Alcohol_Consumption",
+    "Medication_Usage"
+  ],
+  "categories": {
+    "Gender": [
+      "female",
+      "male",
+      "non-binary",
+      "prefer not to say"
+    ],
+    "Occupation": [
+      "education",
+      "engineering",
+      "finance",
+      "healthcare",
+      "it",
+      "other",
+      "sales"
+    ],
+    "Country": [
+      "australia",
+      "canada",
+      "germany",
+      "india",
+      "other",
+      "uk",
+      "usa"
+    ],
+    "Consultation_History": [
+      "no",
+      "yes"
+    ],
+    "Diet_Quality": [
+      "average",
+      "healthy",
+      "unhealthy"
+    ],
+    "Smoking_Habit": [
+      "heavy smoker",
+      "non-smoker",
+      "occasional smoker",
+      "regular smoker"
+    ],
+    "Alcohol_Consumption": [
+      "heavy drinker",
+      "non-drinker",
+      "regular drinker",
+      "social drinker"
+    ],
+    "Medication_Usage": [
+      "no",
+      "yes"
+    ]
+  },
+  "units": {
+    "Age": "years",
+    "Stress_Level": "0-10 scale",
+    "Sleep_Hours": "hours/night",
+    "Work_Hours": "hours/week",
+    "Physical_Activity_Hours": "hours/week",
+    "Social_Media_Usage": "hours/day"
+  },
+  "ranges": {
+    "Age": [
+      19.0,
+      67.0
+    ],
+    "Stress_Level": [
+      1.0,
+      10.0
+    ],
+    "Sleep_Hours": [
+      4.4,
+      9.9
+    ],
+    "Work_Hours": [
+      20.0,
+      73.0
+    ],
+    "Physical_Activity_Hours": [
+      0.0,
+      15.0
+    ],
+    "Social_Media_Usage": [
+      0.5,
+      9.9
+    ]
+  }
+}

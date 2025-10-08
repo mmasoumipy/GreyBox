@@ -1,0 +1,14 @@
+{
+  "validation": {
+    "brier_score": 0.2497144502699146,
+    "roc_auc": 0.51064698,
+    "accuracy": 0.5062,
+    "conformal_coverage": 0.9038
+  },
+  "test": {
+    "brier_score": 0.25006914581316286,
+    "roc_auc": 0.5132594605303784,
+    "accuracy": 0.5077,
+    "conformal_coverage": 0.9039
+  }
+}
