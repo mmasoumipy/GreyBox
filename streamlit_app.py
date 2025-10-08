@@ -152,6 +152,316 @@ def prob_of_one(cal: CalibratedClassifierCV, X: pd.DataFrame) -> np.ndarray:
         return p[:, j]
     return p[:, -1]
 
+
+# ----------------------------
+# Helper functions
+# ----------------------------
+def generate_wellness_plan(patient_data: Dict, prediction: Dict) -> Dict:
+    """Generate personalized 7-day wellness plan based on patient data and risk factors."""
+    
+    # Extract key metrics
+    stress = patient_data.get("Stress_Level", 5)
+    sleep = patient_data.get("Sleep_Hours", 7)
+    exercise = patient_data.get("Physical_Activity_Hours", 3)
+    social_media = patient_data.get("Social_Media_Usage", 2)
+    diet = patient_data.get("Diet_Quality", "average")
+    
+    # Identify top areas for improvement
+    improvements = []
+    
+    if stress >= 7:
+        improvements.append("stress_management")
+    if sleep < 7:
+        improvements.append("sleep_hygiene")
+    if exercise < 3:
+        improvements.append("physical_activity")
+    if social_media > 4:
+        improvements.append("digital_wellness")
+    if diet in ["unhealthy", "average"]:
+        improvements.append("nutrition")
+    
+    # If no major issues, focus on maintenance
+    if not improvements:
+        improvements = ["maintenance", "preventive_care"]
+    
+    # Generate daily plan
+    plan = {
+        "focus_areas": improvements,
+        "daily_schedule": {}
+    }
+    
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
+    for i, day in enumerate(days):
+        daily_activities = []
+        
+        # Morning routine
+        if "sleep_hygiene" in improvements:
+            daily_activities.append({
+                "time": "7:00 AM",
+                "activity": "Wake up at consistent time",
+                "duration": "N/A",
+                "category": "Sleep"
+            })
+        
+        daily_activities.append({
+            "time": "7:30 AM",
+            "activity": "Morning sunlight exposure (10 min walk or sit by window)",
+            "duration": "10 min",
+            "category": "Circadian"
+        })
+        
+        # Stress management
+        if "stress_management" in improvements:
+            if i % 2 == 0:  # Alternate days
+                daily_activities.append({
+                    "time": "8:00 AM",
+                    "activity": "Guided meditation or deep breathing exercises",
+                    "duration": "10-15 min",
+                    "category": "Mental Health"
+                })
+            else:
+                daily_activities.append({
+                    "time": "12:00 PM",
+                    "activity": "Mindfulness break - body scan or gratitude journaling",
+                    "duration": "10 min",
+                    "category": "Mental Health"
+                })
+        
+        # Nutrition
+        if "nutrition" in improvements:
+            daily_activities.append({
+                "time": "Meal times",
+                "activity": "Include vegetables in at least 2 meals, stay hydrated (8 glasses water)",
+                "duration": "Throughout day",
+                "category": "Nutrition"
+            })
+        
+        # Physical activity
+        if "physical_activity" in improvements:
+            if i < 5:  # Weekdays
+                daily_activities.append({
+                    "time": "6:00 PM",
+                    "activity": f"{'Moderate exercise (brisk walk, yoga, cycling)' if i % 2 == 0 else 'Light stretching or gentle movement'}",
+                    "duration": "30 min",
+                    "category": "Physical"
+                })
+            else:  # Weekends
+                daily_activities.append({
+                    "time": "10:00 AM",
+                    "activity": "Longer outdoor activity (hiking, sports, nature walk)",
+                    "duration": "60 min",
+                    "category": "Physical"
+                })
+        
+        # Digital wellness
+        if "digital_wellness" in improvements:
+            daily_activities.append({
+                "time": "9:00 PM",
+                "activity": "Begin digital sunset - reduce screen time, no social media",
+                "duration": "Until bedtime",
+                "category": "Digital Wellness"
+            })
+        
+        # Social connection
+        if i in [2, 5]:  # Wednesday and Saturday
+            daily_activities.append({
+                "time": "7:00 PM" if i == 2 else "2:00 PM",
+                "activity": "Social connection - call friend/family or meet in person",
+                "duration": "30-60 min",
+                "category": "Social"
+            })
+        
+        # Evening routine
+        if "sleep_hygiene" in improvements:
+            daily_activities.append({
+                "time": "10:00 PM",
+                "activity": "Wind-down routine: dim lights, read, or light stretching",
+                "duration": "30 min",
+                "category": "Sleep"
+            })
+            daily_activities.append({
+                "time": "10:30 PM",
+                "activity": "Bedtime - aim for 7-8 hours sleep",
+                "duration": "N/A",
+                "category": "Sleep"
+            })
+        
+        plan["daily_schedule"][day] = daily_activities
+    
+    # Weekly goals
+    plan["weekly_goals"] = []
+    
+    if "stress_management" in improvements:
+        plan["weekly_goals"].append({
+            "goal": "Practice stress management techniques daily",
+            "target": "7 days",
+            "metric": "sessions"
+        })
+    
+    if "sleep_hygiene" in improvements:
+        plan["weekly_goals"].append({
+            "goal": "Achieve 7-8 hours of sleep",
+            "target": "5+ nights",
+            "metric": "nights"
+        })
+    
+    if "physical_activity" in improvements:
+        plan["weekly_goals"].append({
+            "goal": "Complete at least 150 minutes of moderate activity",
+            "target": "150 min",
+            "metric": "minutes"
+        })
+    
+    if "digital_wellness" in improvements:
+        plan["weekly_goals"].append({
+            "goal": "Limit social media to under 2 hours daily",
+            "target": "< 2 hrs/day",
+            "metric": "hours"
+        })
+    
+    if "nutrition" in improvements:
+        plan["weekly_goals"].append({
+            "goal": "Eat balanced meals with vegetables and fruits",
+            "target": "2-3 servings/day",
+            "metric": "servings"
+        })
+    
+    return plan
+
+def display_wellness_plan(plan: Dict):
+    """Display the wellness plan in an organized, user-friendly format."""
+    
+    st.markdown("### 🎯 Your Focus Areas This Week")
+    
+    focus_map = {
+        "stress_management": "🧘 Stress Management",
+        "sleep_hygiene": "😴 Sleep Quality",
+        "physical_activity": "🏃 Physical Activity",
+        "digital_wellness": "📱 Digital Wellness",
+        "nutrition": "🥗 Nutrition",
+        "maintenance": "✨ Wellness Maintenance",
+        "preventive_care": "🛡️ Preventive Care"
+    }
+    
+    cols = st.columns(min(len(plan["focus_areas"]), 4))
+    for i, area in enumerate(plan["focus_areas"]):
+        with cols[i % 4]:
+            st.info(focus_map.get(area, area))
+    
+    st.markdown("### 📊 Weekly Goals")
+    
+    goals_df = pd.DataFrame(plan["weekly_goals"])
+    if not goals_df.empty:
+        for _, row in goals_df.iterrows():
+            st.markdown(f"**{row['goal']}** - Target: {row['target']}")
+    
+    st.markdown("### 📅 Daily Schedule")
+    
+    # Create tabs for each day
+    days = list(plan["daily_schedule"].keys())
+    tabs = st.tabs(days)
+    
+    for tab, day in zip(tabs, days):
+        with tab:
+            activities = plan["daily_schedule"][day]
+            
+            # Group by category
+            categories = {}
+            for activity in activities:
+                cat = activity["category"]
+                if cat not in categories:
+                    categories[cat] = []
+                categories[cat].append(activity)
+            
+            # Display activities by category
+            for category, acts in categories.items():
+                st.markdown(f"#### {category}")
+                for act in acts:
+                    with st.container():
+                        col1, col2 = st.columns([1, 3])
+                        with col1:
+                            st.markdown(f"**{act['time']}**")
+                        with col2:
+                            st.markdown(f"{act['activity']}")
+                            if act['duration'] != "N/A":
+                                st.caption(f"Duration: {act['duration']}")
+                st.markdown("")
+    
+    # Tips section
+    st.markdown("### 💡 Success Tips")
+    
+    tips_col1, tips_col2 = st.columns(2)
+    
+    with tips_col1:
+        st.markdown("""
+        **Getting Started:**
+        - Start small - don't try to change everything at once
+        - Set reminders on your phone for key activities
+        - Track your progress in a journal or app
+        - Be patient with yourself - change takes time
+        """)
+    
+    with tips_col2:
+        st.markdown("""
+        **Staying Consistent:**
+        - Find an accountability partner
+        - Celebrate small wins
+        - Adjust the plan if something isn't working
+        - Focus on progress, not perfection
+        """)
+    
+    # Download option
+    st.markdown("### 📥 Save Your Plan")
+    
+    # Create downloadable text version
+    plan_text = "YOUR 7-DAY WELLNESS PLAN\n\n"
+    plan_text += "=" * 50 + "\n\n"
+    
+    plan_text += "FOCUS AREAS:\n"
+    for area in plan["focus_areas"]:
+        plan_text += f"- {focus_map.get(area, area)}\n"
+    plan_text += "\n"
+    
+    plan_text += "WEEKLY GOALS:\n"
+    for goal in plan["weekly_goals"]:
+        plan_text += f"- {goal['goal']} (Target: {goal['target']})\n"
+    plan_text += "\n"
+    
+    plan_text += "DAILY SCHEDULE:\n"
+    plan_text += "=" * 50 + "\n\n"
+    
+    for day, activities in plan["daily_schedule"].items():
+        plan_text += f"\n{day.upper()}\n"
+        plan_text += "-" * 30 + "\n"
+        for act in activities:
+            plan_text += f"{act['time']} - {act['activity']}"
+            if act['duration'] != "N/A":
+                plan_text += f" ({act['duration']})"
+            plan_text += "\n"
+        plan_text += "\n"
+    
+    st.download_button(
+        label="📄 Download Plan as Text File",
+        data=plan_text,
+        file_name=f"wellness_plan_{st.session_state['user_id']}.txt",
+        mime="text/plain",
+        use_container_width=True
+    )
+
+def save_interaction_log():
+    """Save interaction log to JSON file."""
+    log_dir = Path("study_logs")
+    log_dir.mkdir(exist_ok=True)
+    
+    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{st.session_state['user_id']}_{st.session_state['study_mode']}_{timestamp}.json"
+    
+    with open(log_dir / filename, 'w') as f:
+        json.dump(st.session_state["interaction_log"], f, indent=2)
+    
+    st.sidebar.success(f"✅ Session data saved")
+
 # ----------------------------
 # Data loading
 # ----------------------------
@@ -718,315 +1028,6 @@ if "current_prediction" in st.session_state:
             
             # Save interaction log
             save_interaction_log()
-
-# ----------------------------
-# Helper functions
-# ----------------------------
-def generate_wellness_plan(patient_data: Dict, prediction: Dict) -> Dict:
-    """Generate personalized 7-day wellness plan based on patient data and risk factors."""
-    
-    # Extract key metrics
-    stress = patient_data.get("Stress_Level", 5)
-    sleep = patient_data.get("Sleep_Hours", 7)
-    exercise = patient_data.get("Physical_Activity_Hours", 3)
-    social_media = patient_data.get("Social_Media_Usage", 2)
-    diet = patient_data.get("Diet_Quality", "average")
-    
-    # Identify top areas for improvement
-    improvements = []
-    
-    if stress >= 7:
-        improvements.append("stress_management")
-    if sleep < 7:
-        improvements.append("sleep_hygiene")
-    if exercise < 3:
-        improvements.append("physical_activity")
-    if social_media > 4:
-        improvements.append("digital_wellness")
-    if diet in ["unhealthy", "average"]:
-        improvements.append("nutrition")
-    
-    # If no major issues, focus on maintenance
-    if not improvements:
-        improvements = ["maintenance", "preventive_care"]
-    
-    # Generate daily plan
-    plan = {
-        "focus_areas": improvements,
-        "daily_schedule": {}
-    }
-    
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    
-    for i, day in enumerate(days):
-        daily_activities = []
-        
-        # Morning routine
-        if "sleep_hygiene" in improvements:
-            daily_activities.append({
-                "time": "7:00 AM",
-                "activity": "Wake up at consistent time",
-                "duration": "N/A",
-                "category": "Sleep"
-            })
-        
-        daily_activities.append({
-            "time": "7:30 AM",
-            "activity": "Morning sunlight exposure (10 min walk or sit by window)",
-            "duration": "10 min",
-            "category": "Circadian"
-        })
-        
-        # Stress management
-        if "stress_management" in improvements:
-            if i % 2 == 0:  # Alternate days
-                daily_activities.append({
-                    "time": "8:00 AM",
-                    "activity": "Guided meditation or deep breathing exercises",
-                    "duration": "10-15 min",
-                    "category": "Mental Health"
-                })
-            else:
-                daily_activities.append({
-                    "time": "12:00 PM",
-                    "activity": "Mindfulness break - body scan or gratitude journaling",
-                    "duration": "10 min",
-                    "category": "Mental Health"
-                })
-        
-        # Nutrition
-        if "nutrition" in improvements:
-            daily_activities.append({
-                "time": "Meal times",
-                "activity": "Include vegetables in at least 2 meals, stay hydrated (8 glasses water)",
-                "duration": "Throughout day",
-                "category": "Nutrition"
-            })
-        
-        # Physical activity
-        if "physical_activity" in improvements:
-            if i < 5:  # Weekdays
-                daily_activities.append({
-                    "time": "6:00 PM",
-                    "activity": f"{'Moderate exercise (brisk walk, yoga, cycling)' if i % 2 == 0 else 'Light stretching or gentle movement'}",
-                    "duration": "30 min",
-                    "category": "Physical"
-                })
-            else:  # Weekends
-                daily_activities.append({
-                    "time": "10:00 AM",
-                    "activity": "Longer outdoor activity (hiking, sports, nature walk)",
-                    "duration": "60 min",
-                    "category": "Physical"
-                })
-        
-        # Digital wellness
-        if "digital_wellness" in improvements:
-            daily_activities.append({
-                "time": "9:00 PM",
-                "activity": "Begin digital sunset - reduce screen time, no social media",
-                "duration": "Until bedtime",
-                "category": "Digital Wellness"
-            })
-        
-        # Social connection
-        if i in [2, 5]:  # Wednesday and Saturday
-            daily_activities.append({
-                "time": "7:00 PM" if i == 2 else "2:00 PM",
-                "activity": "Social connection - call friend/family or meet in person",
-                "duration": "30-60 min",
-                "category": "Social"
-            })
-        
-        # Evening routine
-        if "sleep_hygiene" in improvements:
-            daily_activities.append({
-                "time": "10:00 PM",
-                "activity": "Wind-down routine: dim lights, read, or light stretching",
-                "duration": "30 min",
-                "category": "Sleep"
-            })
-            daily_activities.append({
-                "time": "10:30 PM",
-                "activity": "Bedtime - aim for 7-8 hours sleep",
-                "duration": "N/A",
-                "category": "Sleep"
-            })
-        
-        plan["daily_schedule"][day] = daily_activities
-    
-    # Weekly goals
-    plan["weekly_goals"] = []
-    
-    if "stress_management" in improvements:
-        plan["weekly_goals"].append({
-            "goal": "Practice stress management techniques daily",
-            "target": "7 days",
-            "metric": "sessions"
-        })
-    
-    if "sleep_hygiene" in improvements:
-        plan["weekly_goals"].append({
-            "goal": "Achieve 7-8 hours of sleep",
-            "target": "5+ nights",
-            "metric": "nights"
-        })
-    
-    if "physical_activity" in improvements:
-        plan["weekly_goals"].append({
-            "goal": "Complete at least 150 minutes of moderate activity",
-            "target": "150 min",
-            "metric": "minutes"
-        })
-    
-    if "digital_wellness" in improvements:
-        plan["weekly_goals"].append({
-            "goal": "Limit social media to under 2 hours daily",
-            "target": "< 2 hrs/day",
-            "metric": "hours"
-        })
-    
-    if "nutrition" in improvements:
-        plan["weekly_goals"].append({
-            "goal": "Eat balanced meals with vegetables and fruits",
-            "target": "2-3 servings/day",
-            "metric": "servings"
-        })
-    
-    return plan
-
-def display_wellness_plan(plan: Dict):
-    """Display the wellness plan in an organized, user-friendly format."""
-    
-    st.markdown("### 🎯 Your Focus Areas This Week")
-    
-    focus_map = {
-        "stress_management": "🧘 Stress Management",
-        "sleep_hygiene": "😴 Sleep Quality",
-        "physical_activity": "🏃 Physical Activity",
-        "digital_wellness": "📱 Digital Wellness",
-        "nutrition": "🥗 Nutrition",
-        "maintenance": "✨ Wellness Maintenance",
-        "preventive_care": "🛡️ Preventive Care"
-    }
-    
-    cols = st.columns(min(len(plan["focus_areas"]), 4))
-    for i, area in enumerate(plan["focus_areas"]):
-        with cols[i % 4]:
-            st.info(focus_map.get(area, area))
-    
-    st.markdown("### 📊 Weekly Goals")
-    
-    goals_df = pd.DataFrame(plan["weekly_goals"])
-    if not goals_df.empty:
-        for _, row in goals_df.iterrows():
-            st.markdown(f"**{row['goal']}** - Target: {row['target']}")
-    
-    st.markdown("### 📅 Daily Schedule")
-    
-    # Create tabs for each day
-    days = list(plan["daily_schedule"].keys())
-    tabs = st.tabs(days)
-    
-    for tab, day in zip(tabs, days):
-        with tab:
-            activities = plan["daily_schedule"][day]
-            
-            # Group by category
-            categories = {}
-            for activity in activities:
-                cat = activity["category"]
-                if cat not in categories:
-                    categories[cat] = []
-                categories[cat].append(activity)
-            
-            # Display activities by category
-            for category, acts in categories.items():
-                st.markdown(f"#### {category}")
-                for act in acts:
-                    with st.container():
-                        col1, col2 = st.columns([1, 3])
-                        with col1:
-                            st.markdown(f"**{act['time']}**")
-                        with col2:
-                            st.markdown(f"{act['activity']}")
-                            if act['duration'] != "N/A":
-                                st.caption(f"Duration: {act['duration']}")
-                st.markdown("")
-    
-    # Tips section
-    st.markdown("### 💡 Success Tips")
-    
-    tips_col1, tips_col2 = st.columns(2)
-    
-    with tips_col1:
-        st.markdown("""
-        **Getting Started:**
-        - Start small - don't try to change everything at once
-        - Set reminders on your phone for key activities
-        - Track your progress in a journal or app
-        - Be patient with yourself - change takes time
-        """)
-    
-    with tips_col2:
-        st.markdown("""
-        **Staying Consistent:**
-        - Find an accountability partner
-        - Celebrate small wins
-        - Adjust the plan if something isn't working
-        - Focus on progress, not perfection
-        """)
-    
-    # Download option
-    st.markdown("### 📥 Save Your Plan")
-    
-    # Create downloadable text version
-    plan_text = "YOUR 7-DAY WELLNESS PLAN\n\n"
-    plan_text += "=" * 50 + "\n\n"
-    
-    plan_text += "FOCUS AREAS:\n"
-    for area in plan["focus_areas"]:
-        plan_text += f"- {focus_map.get(area, area)}\n"
-    plan_text += "\n"
-    
-    plan_text += "WEEKLY GOALS:\n"
-    for goal in plan["weekly_goals"]:
-        plan_text += f"- {goal['goal']} (Target: {goal['target']})\n"
-    plan_text += "\n"
-    
-    plan_text += "DAILY SCHEDULE:\n"
-    plan_text += "=" * 50 + "\n\n"
-    
-    for day, activities in plan["daily_schedule"].items():
-        plan_text += f"\n{day.upper()}\n"
-        plan_text += "-" * 30 + "\n"
-        for act in activities:
-            plan_text += f"{act['time']} - {act['activity']}"
-            if act['duration'] != "N/A":
-                plan_text += f" ({act['duration']})"
-            plan_text += "\n"
-        plan_text += "\n"
-    
-    st.download_button(
-        label="📄 Download Plan as Text File",
-        data=plan_text,
-        file_name=f"wellness_plan_{st.session_state['user_id']}.txt",
-        mime="text/plain",
-        use_container_width=True
-    )
-
-def save_interaction_log():
-    """Save interaction log to JSON file."""
-    log_dir = Path("study_logs")
-    log_dir.mkdir(exist_ok=True)
-    
-    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{st.session_state['user_id']}_{st.session_state['study_mode']}_{timestamp}.json"
-    
-    with open(log_dir / filename, 'w') as f:
-        json.dump(st.session_state["interaction_log"], f, indent=2)
-    
-    st.sidebar.success(f"✅ Session data saved")
 
 # ----------------------------
 # Admin/Researcher view
