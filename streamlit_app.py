@@ -27,6 +27,11 @@ from sklearn.metrics import brier_score_loss
 from sklearn.ensemble import IsolationForest
 import shap
 
+try:
+    import analyze_study as study_analysis
+except Exception:
+    study_analysis = None
+
 st.set_page_config(page_title="Stress Risk Assessment", layout="wide")
 
 def resolve_admin_key() -> str:
@@ -51,6 +56,8 @@ if "admin_mode" not in st.session_state:
     st.session_state["admin_mode"] = False
 if "view_mode" not in st.session_state:
     st.session_state["view_mode"] = "participant"
+if "study_analysis_results" not in st.session_state:
+    st.session_state["study_analysis_results"] = None
 
 # ----------------------------
 # Study mode selection
@@ -376,8 +383,6 @@ def generate_stress_management_plan(user_data: Dict, prediction: Dict) -> Dict:
 def display_stress_plan(plan: Dict):
     """Display the stress management plan."""
     
-    st.markdown("### 🎯 Your Stress Risk Factors")
-    
     factor_map = {
         "high_stress_events": "⚠️ High Stress Events",
         "low_job_satisfaction": "😞 Low Job Satisfaction",
@@ -395,10 +400,12 @@ def display_stress_plan(plan: Dict):
         "prevention": "🛡️ Stress Prevention"
     }
     
-    cols = st.columns(min(len(plan["risk_factors"]), 4))
-    for i, factor in enumerate(plan["risk_factors"]):
-        with cols[i % 4]:
-            st.warning(factor_map.get(factor, factor))
+    if st.session_state.get("study_mode") != "G1":
+        st.markdown("### 🎯 Your Stress Risk Factors")
+        cols = st.columns(min(len(plan["risk_factors"]), 4))
+        for i, factor in enumerate(plan["risk_factors"]):
+            with cols[i % 4]:
+                st.warning(factor_map.get(factor, factor))
     
     st.markdown("### 📊 Weekly Goals")
     for goal in plan["weekly_goals"]:
@@ -597,6 +604,66 @@ def format_display_value(value) -> str:
     if isinstance(value, float):
         return f"{value:.2f}".rstrip("0").rstrip(".")
     return str(value)
+
+def run_study_analysis_pipeline():
+    """Execute analyze_study helpers and return structured outputs for the admin dashboard."""
+    if study_analysis is None:
+        return {"error": "analyze_study.py is not available in this workspace."}
+    logs_df = study_analysis.load_study_data()
+    if logs_df is None or logs_df.empty:
+        return {"error": "No study log files found in study_logs/."}
+    surveys = study_analysis.extract_survey_data(logs_df)
+    if surveys is None or surveys.empty:
+        return {"error": "No survey responses have been recorded yet."}
+    warnings = []
+    group_counts = surveys["group"].value_counts()
+    if (group_counts < 5).any():
+        warnings.append("Some study groups have fewer than 5 survey responses; interpret statistics carefully.")
+    stats_df = study_analysis.compute_statistics(surveys)
+    try:
+        study_analysis.analyze_correlations(surveys)
+    except Exception as exc:
+        warnings.append(f"Correlation analysis failed: {exc}")
+    figure_paths: List[Path] = []
+    try:
+        study_analysis.create_visualizations(surveys)
+        figure_paths = [p for p in map(Path, [
+            "results_boxplots.png",
+            "results_barplot.png",
+            "results_distributions.png"
+        ]) if p.exists()]
+    except Exception as exc:
+        warnings.append(f"Visualization generation failed: {exc}")
+    export_paths: List[Path] = []
+    try:
+        study_analysis.export_results(surveys, stats_df)
+        export_paths = [p for p in map(Path, [
+            "survey_responses.csv",
+            "statistical_results.csv",
+            "summary_statistics.csv"
+        ]) if p.exists()]
+    except Exception as exc:
+        warnings.append(f"Export step failed: {exc}")
+    report_text = ""
+    report_path = Path("study_report.txt")
+    try:
+        study_analysis.generate_report(surveys, stats_df)
+        if report_path.exists():
+            report_text = report_path.read_text()
+    except Exception as exc:
+        warnings.append(f"Report generation failed: {exc}")
+    qualitative = surveys[["group", "comments"]].dropna()
+    return {
+        "events": logs_df,
+        "surveys": surveys,
+        "stats": stats_df,
+        "warnings": warnings,
+        "figures": figure_paths,
+        "exports": export_paths,
+        "report_text": report_text,
+        "report_path": report_path if report_path.exists() else None,
+        "qualitative": qualitative,
+    }
 def save_interaction_log():
     """Save interaction log to JSON file."""
     log_dir = Path("study_logs")
@@ -924,6 +991,78 @@ def render_admin_dashboard(df: pd.DataFrame, arts: Artifacts):
         mime="text/csv",
         use_container_width=True,
     )
+
+    st.markdown("### 🧪 Study Log Analysis")
+    if study_analysis is None:
+        st.warning("analyze_study.py is missing, so automated analysis cannot run.")
+    else:
+        run_clicked = st.button("Run analyze_study pipeline", key="run_study_analysis")
+        if run_clicked:
+            with st.spinner("Running analyze_study helpers..."):
+                st.session_state["study_analysis_results"] = run_study_analysis_pipeline()
+        analysis = st.session_state.get("study_analysis_results")
+        if analysis:
+            if analysis.get("error"):
+                st.error(analysis["error"])
+            else:
+                if analysis.get("warnings"):
+                    for warn in analysis["warnings"]:
+                        st.warning(warn)
+                st.subheader("Survey Statistics")
+                st.dataframe(analysis["stats"], use_container_width=True)
+                st.download_button(
+                    "⬇️ Download statistical summary (CSV)",
+                    analysis["stats"].to_csv(index=False).encode("utf-8"),
+                    file_name="statistical_results_dashboard.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="download_stats_dashboard",
+                )
+                st.subheader("Survey Responses")
+                st.dataframe(analysis["surveys"], use_container_width=True, height=300)
+                st.download_button(
+                    "⬇️ Download survey responses (CSV)",
+                    analysis["surveys"].to_csv(index=False).encode("utf-8"),
+                    file_name="survey_responses_dashboard.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                    key="download_surveys_dashboard",
+                )
+                if analysis.get("qualitative") is not None and not analysis["qualitative"].empty:
+                    st.subheader("Participant Comments")
+                    for _, row in analysis["qualitative"].iterrows():
+                        st.write(f"**{row['group']}**: {row['comments']}")
+                if analysis.get("figures"):
+                    st.subheader("Generated Figures")
+                    for path in analysis["figures"]:
+                        st.image(str(path), caption=path.name, use_column_width=True)
+                if analysis.get("exports"):
+                    st.subheader("Download Generated Files")
+                    for path in analysis["exports"]:
+                        with open(path, "rb") as f:
+                            st.download_button(
+                                f"⬇️ {path.name}",
+                                f.read(),
+                                file_name=path.name,
+                                mime="text/csv",
+                                use_container_width=True,
+                                key=f"export_{path.name}",
+                            )
+                report_text = analysis.get("report_text")
+                if report_text:
+                    st.subheader("Study Report")
+                    st.text_area("Report preview", report_text, height=250)
+                    report_path = analysis.get("report_path")
+                    if report_path and report_path.exists():
+                        with open(report_path, "rb") as f:
+                            st.download_button(
+                                "⬇️ Download study report (txt)",
+                                f.read(),
+                                file_name=report_path.name,
+                                mime="text/plain",
+                                use_container_width=True,
+                                key="download_report",
+                            )
 
 if st.session_state["admin_mode"] and st.session_state["view_mode"] == "admin":
     render_admin_dashboard(df, arts)

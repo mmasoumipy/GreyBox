@@ -1,0 +1,42 @@
+======================================================================
+AI TRUST USER STUDY - RESULTS REPORT
+======================================================================
+
+SAMPLE INFORMATION
+----------------------------------------------------------------------
+Total participants: 4
+  G1: 2 participants
+  G2: 2 participants
+
+MAIN FINDINGS
+----------------------------------------------------------------------
+
+Trust in AI:
+  G1 (Basic):    M = 2.00, SD = 0.00
+  G2 (Enhanced): M = 3.50, SD = 0.71
+  t(2) = -3.000, p = 0.0955 ns
+  Cohen's d = 3.000
+  → No significant difference between groups
+
+Likelihood to Follow:
+  G1 (Basic):    M = 2.50, SD = 0.71
+  G2 (Enhanced): M = 4.00, SD = 1.41
+  t(2) = -1.342, p = 0.3118 ns
+  Cohen's d = 1.342
+  → No significant difference between groups
+
+Perceived Usefulness:
+  G1 (Basic):    M = 1.50, SD = 0.71
+  G2 (Enhanced): M = 3.50, SD = 0.71
+  t(2) = -2.828, p = 0.1056 ns
+  Cohen's d = 2.828
+  → No significant difference between groups
+
+======================================================================
+INTERPRETATION
+======================================================================
+
+Showing uncertainty and AI explanations appears to INCREASE user trust.
+This suggests that transparency may be beneficial for AI adoption.
+
+Note: These are preliminary interpretations. Consider context and limitations.
