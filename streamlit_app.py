@@ -26,7 +26,7 @@ from sklearn.metrics import brier_score_loss
 from sklearn.ensemble import IsolationForest
 import shap
 
-st.set_page_config(page_title="Mental Health Risk Assessment", layout="wide")
+st.set_page_config(page_title="Stress Risk Assessment", layout="wide")
 
 # ----------------------------
 # Session state initialization
@@ -41,13 +41,13 @@ if "interaction_log" not in st.session_state:
 # ----------------------------
 # Study mode selection
 # ----------------------------
-st.title("🧠 Mental Health Risk Assessment System")
+st.title("🧠 Stress Risk Assessment System")
 
 if st.session_state["study_mode"] is None:
     st.markdown("""
-    ### Welcome to the Mental Health Risk Assessment Study
+    ### Welcome to the Stress Risk Assessment Study
     
-    This system helps assess mental health risk based on lifestyle and demographic factors.
+    This system helps assess stress risk based on lifestyle, work, and health metrics.
     
     **Please select your study group:**
     """)
@@ -107,317 +107,304 @@ def prob_of_one(cal: CalibratedClassifierCV, X: pd.DataFrame) -> np.ndarray:
     return p[:, -1]
 
 # ----------------------------
-# Wellness plan generator
+# Stress management plan generator
 # ----------------------------
-def generate_wellness_plan(patient_data: Dict, prediction: Dict) -> Dict:
-    """Generate personalized 7-day wellness plan based on patient data and risk factors."""
+def generate_stress_management_plan(user_data: Dict, prediction: Dict) -> Dict:
+    """Generate personalized stress management plan based on user metrics."""
     
     # Extract key metrics
-    stress = patient_data.get("Stress_Level", 5)
-    sleep = patient_data.get("Sleep_Hours", 7)
-    exercise = patient_data.get("Physical_Activity_Hours", 3)
-    social_media = patient_data.get("Social_Media_Usage", 2)
-    diet = patient_data.get("Diet_Quality", "average")
-    work_hours = patient_data.get("Work_Hours", 40)
+    stress_events = user_data.get("stress_event_count_last_week", 2)
+    job_satisfaction = user_data.get("job_satisfaction", 5)
+    workload_rating = user_data.get("workload_rating", 5)
+    sleep_quality = user_data.get("sleep_quality_rating", 5)
+    sleep_duration = user_data.get("sleep_duration_hr", 7)
+    exercise_frequency = user_data.get("physical_activity_frequency", 3)
+    coffee_intake = user_data.get("coffee_intake_cups", 2)
+    alcohol_intake = user_data.get("alcohol_intake_per_week", 2)
+    screen_time = user_data.get("screen_time_hr", 5)
+    social_interactions = user_data.get("social_interactions_count", 5)
+    breaks_per_day = user_data.get("breaks_per_workday", 2)
+    work_hours = user_data.get("work_hours_per_week", 40)
     
-    # Identify top areas for improvement
-    improvements = []
+    # Identify stress factors
+    stress_factors = []
     
-    if stress >= 7:
-        improvements.append("stress_management")
-    if sleep < 7:
-        improvements.append("sleep_hygiene")
-    if exercise < 3:
-        improvements.append("physical_activity")
-    if social_media > 4:
-        improvements.append("digital_wellness")
-    if diet in ["unhealthy", "poor"]:
-        improvements.append("nutrition")
+    if stress_events >= 3:
+        stress_factors.append("high_stress_events")
+    if job_satisfaction < 4:
+        stress_factors.append("low_job_satisfaction")
+    if workload_rating >= 7:
+        stress_factors.append("high_workload")
+    if sleep_quality < 5:
+        stress_factors.append("poor_sleep_quality")
+    if sleep_duration < 7:
+        stress_factors.append("insufficient_sleep")
+    if exercise_frequency < 3:
+        stress_factors.append("low_exercise")
+    if coffee_intake > 3:
+        stress_factors.append("high_caffeine")
+    if alcohol_intake > 7:
+        stress_factors.append("high_alcohol")
+    if screen_time > 6:
+        stress_factors.append("excessive_screen_time")
+    if social_interactions < 3:
+        stress_factors.append("low_social_contact")
+    if breaks_per_day < 3:
+        stress_factors.append("insufficient_breaks")
     if work_hours > 50:
-        improvements.append("work_life_balance")
+        stress_factors.append("overwork")
     
-    # If no major issues, focus on maintenance
-    if not improvements:
-        improvements = ["maintenance", "preventive_care"]
+    # If no major factors, focus on maintenance
+    if not stress_factors:
+        stress_factors = ["maintenance", "prevention"]
     
-    # Generate daily plan
     plan = {
-        "focus_areas": improvements,
-        "daily_schedule": {}
+        "risk_factors": stress_factors,
+        "daily_routine": {}
     }
     
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     
     for i, day in enumerate(days):
-        daily_activities = []
+        activities = []
         
         # Morning routine
-        if "sleep_hygiene" in improvements:
-            daily_activities.append({
-                "time": "7:00 AM",
-                "activity": "Wake up at consistent time",
-                "duration": "N/A",
-                "category": "Sleep"
-            })
-        
-        daily_activities.append({
-            "time": "7:30 AM",
-            "activity": "Morning sunlight exposure (10 min walk or sit by window)",
-            "duration": "10 min",
-            "category": "Circadian"
+        activities.append({
+            "time": "6:30-7:00 AM",
+            "activity": "Wake up routine - hydrate, light stretching or yoga",
+            "category": "Morning",
+            "duration": "30 min"
         })
         
-        # Stress management
-        if "stress_management" in improvements:
-            if i % 2 == 0:
-                daily_activities.append({
-                    "time": "8:00 AM",
-                    "activity": "Guided meditation or deep breathing exercises",
-                    "duration": "10-15 min",
-                    "category": "Mental Health"
-                })
-            else:
-                daily_activities.append({
-                    "time": "12:00 PM",
-                    "activity": "Mindfulness break - body scan or gratitude journaling",
-                    "duration": "10 min",
-                    "category": "Mental Health"
-                })
+        # Work preparation
+        activities.append({
+            "time": "7:00-8:00 AM",
+            "activity": "Healthy breakfast - avoid excessive coffee, plan priorities",
+            "category": "Breakfast",
+            "duration": "60 min"
+        })
         
-        # Nutrition
-        if "nutrition" in improvements:
-            daily_activities.append({
-                "time": "Meal times",
-                "activity": "Include vegetables in at least 2 meals, stay hydrated (8 glasses water)",
-                "duration": "Throughout day",
-                "category": "Nutrition"
+        # Workday stress management
+        if "insufficient_breaks" in stress_factors or "high_workload" in stress_factors:
+            activities.append({
+                "time": "9:30 AM",
+                "activity": "First break - 5 min breathing exercise or walk",
+                "category": "Break",
+                "duration": "5 min"
+            })
+            activities.append({
+                "time": "12:00 PM",
+                "activity": "Lunch break - step outside or change scenery",
+                "category": "Lunch",
+                "duration": "30 min"
+            })
+            activities.append({
+                "time": "3:00 PM",
+                "activity": "Afternoon break - hydration + 5 min movement",
+                "category": "Break",
+                "duration": "5 min"
             })
         
-        # Physical activity
-        if "physical_activity" in improvements:
+        # Exercise
+        if "low_exercise" in stress_factors:
             if i < 5:  # Weekdays
-                daily_activities.append({
-                    "time": "6:00 PM",
-                    "activity": f"{'Moderate exercise (brisk walk, yoga, cycling)' if i % 2 == 0 else 'Light stretching or gentle movement'}",
-                    "duration": "30 min",
-                    "category": "Physical"
+                activities.append({
+                    "time": "5:30 PM" if i % 2 == 0 else "6:30 AM (before work)",
+                    "activity": "Moderate exercise - 30-45 min (walk, gym, cycling, yoga)",
+                    "category": "Exercise",
+                    "duration": "45 min"
                 })
             else:  # Weekends
-                daily_activities.append({
-                    "time": "10:00 AM",
-                    "activity": "Longer outdoor activity (hiking, sports, nature walk)",
-                    "duration": "60 min",
-                    "category": "Physical"
+                activities.append({
+                    "time": "9:00 AM",
+                    "activity": "Longer activity - 60 min outdoor activity or sports",
+                    "category": "Exercise",
+                    "duration": "60 min"
                 })
         
-        # Digital wellness
-        if "digital_wellness" in improvements:
-            daily_activities.append({
-                "time": "9:00 PM",
-                "activity": "Begin digital sunset - reduce screen time, no social media",
-                "duration": "Until bedtime",
-                "category": "Digital Wellness"
-            })
-        
-        # Work-life balance
-        if "work_life_balance" in improvements and i < 5:
-            daily_activities.append({
-                "time": "5:00 PM",
-                "activity": "Hard stop work - set boundaries, transition to personal time",
-                "duration": "N/A",
-                "category": "Work-Life Balance"
-            })
-        
         # Social connection
-        if i in [2, 5]:
-            daily_activities.append({
-                "time": "7:00 PM" if i == 2 else "2:00 PM",
-                "activity": "Social connection - call friend/family or meet in person",
-                "duration": "30-60 min",
-                "category": "Social"
+        if "low_social_contact" in stress_factors:
+            if i in [2, 5]:
+                activities.append({
+                    "time": "7:00 PM",
+                    "activity": f"Social time - {'meet friend for coffee' if i == 2 else 'family dinner or video call'}",
+                    "category": "Social",
+                    "duration": "60 min"
+                })
+        
+        # Caffeine management
+        if "high_caffeine" in stress_factors:
+            activities.append({
+                "time": "Before 2 PM",
+                "activity": "Limit coffee to 1-2 cups in morning (cut off by 2 PM)",
+                "category": "Nutrition",
+                "duration": "Ongoing"
+            })
+        
+        # Screen time management
+        if "excessive_screen_time" in stress_factors:
+            activities.append({
+                "time": "8:30-9:00 PM",
+                "activity": "Digital sunset - put phone away, reduce screen exposure",
+                "category": "Digital Wellness",
+                "duration": "30 min"
             })
         
         # Evening routine
-        if "sleep_hygiene" in improvements:
-            daily_activities.append({
-                "time": "10:00 PM",
-                "activity": "Wind-down routine: dim lights, read, or light stretching",
-                "duration": "30 min",
-                "category": "Sleep"
+        if "poor_sleep_quality" in stress_factors or "insufficient_sleep" in stress_factors:
+            activities.append({
+                "time": "9:00-10:00 PM",
+                "activity": "Wind-down routine - read, light stretching, meditation",
+                "category": "Evening",
+                "duration": "60 min"
             })
-            daily_activities.append({
-                "time": "10:30 PM",
-                "activity": "Bedtime - aim for 7-8 hours sleep",
-                "duration": "N/A",
-                "category": "Sleep"
+            activities.append({
+                "time": "10:00 PM",
+                "activity": "Consistent bedtime - aim for 7-8 hours sleep",
+                "category": "Sleep",
+                "duration": "N/A"
             })
         
-        plan["daily_schedule"][day] = daily_activities
+        plan["daily_routine"][day] = activities
     
     # Weekly goals
     plan["weekly_goals"] = []
     
-    if "stress_management" in improvements:
+    if "high_stress_events" in stress_factors:
         plan["weekly_goals"].append({
-            "goal": "Practice stress management techniques daily",
-            "target": "7 days",
-            "metric": "sessions"
+            "goal": "Practice stress management techniques",
+            "target": "Daily",
+            "tips": ["Meditation", "Deep breathing", "Journaling"]
         })
     
-    if "sleep_hygiene" in improvements:
+    if "insufficient_sleep" in stress_factors:
         plan["weekly_goals"].append({
-            "goal": "Achieve 7-8 hours of sleep",
+            "goal": "Achieve 7-8 hours sleep",
             "target": "5+ nights",
-            "metric": "nights"
+            "tips": ["Consistent bedtime", "Dark room", "No screens 1 hour before bed"]
         })
     
-    if "physical_activity" in improvements:
+    if "low_exercise" in stress_factors:
         plan["weekly_goals"].append({
-            "goal": "Complete at least 150 minutes of moderate activity",
-            "target": "150 min",
-            "metric": "minutes"
+            "goal": "Physical activity",
+            "target": "150 min moderate activity",
+            "tips": ["Brisk walking", "Yoga", "Cycling", "Team sports"]
         })
     
-    if "digital_wellness" in improvements:
+    if "high_caffeine" in stress_factors:
         plan["weekly_goals"].append({
-            "goal": "Limit social media to under 2 hours daily",
-            "target": "< 2 hrs/day",
-            "metric": "hours"
+            "goal": "Reduce caffeine",
+            "target": "Max 1-2 cups before noon",
+            "tips": ["Switch to herbal tea", "Gradual reduction", "Track intake"]
         })
     
-    if "nutrition" in improvements:
+    if "excessive_screen_time" in stress_factors:
         plan["weekly_goals"].append({
-            "goal": "Eat balanced meals with vegetables and fruits",
-            "target": "2-3 servings/day",
-            "metric": "servings"
+            "goal": "Digital wellness",
+            "target": "Reduce by 2 hours/day",
+            "tips": ["App time trackers", "Digital sunset", "More outdoor time"]
         })
     
-    if "work_life_balance" in improvements:
+    if "low_social_contact" in stress_factors:
         plan["weekly_goals"].append({
-            "goal": "Limit work hours to 50 per week",
-            "target": "≤ 50 hrs",
-            "metric": "hours"
+            "goal": "Social connection",
+            "target": "3+ meaningful interactions",
+            "tips": ["Phone calls", "In-person meetups", "Group activities"]
         })
     
     return plan
 
-def display_wellness_plan(plan: Dict):
-    """Display the wellness plan in an organized, user-friendly format."""
+def display_stress_plan(plan: Dict):
+    """Display the stress management plan."""
     
-    st.markdown("### 🎯 Your Focus Areas This Week")
+    st.markdown("### 🎯 Your Stress Risk Factors")
     
-    focus_map = {
-        "stress_management": "🧘 Stress Management",
-        "sleep_hygiene": "😴 Sleep Quality",
-        "physical_activity": "🏃 Physical Activity",
-        "digital_wellness": "📱 Digital Wellness",
-        "nutrition": "🥗 Nutrition",
-        "work_life_balance": "⚖️ Work-Life Balance",
+    factor_map = {
+        "high_stress_events": "⚠️ High Stress Events",
+        "low_job_satisfaction": "😞 Low Job Satisfaction",
+        "high_workload": "📊 High Workload",
+        "poor_sleep_quality": "😴 Poor Sleep Quality",
+        "insufficient_sleep": "⏰ Insufficient Sleep",
+        "low_exercise": "🏃 Low Exercise",
+        "high_caffeine": "☕ High Caffeine",
+        "high_alcohol": "🍷 High Alcohol",
+        "excessive_screen_time": "📱 Excessive Screen Time",
+        "low_social_contact": "👥 Low Social Contact",
+        "insufficient_breaks": "🚫 Insufficient Breaks",
+        "overwork": "💼 Overwork",
         "maintenance": "✨ Wellness Maintenance",
-        "preventive_care": "🛡️ Preventive Care"
+        "prevention": "🛡️ Stress Prevention"
     }
     
-    cols = st.columns(min(len(plan["focus_areas"]), 4))
-    for i, area in enumerate(plan["focus_areas"]):
+    cols = st.columns(min(len(plan["risk_factors"]), 4))
+    for i, factor in enumerate(plan["risk_factors"]):
         with cols[i % 4]:
-            st.info(focus_map.get(area, area))
+            st.warning(factor_map.get(factor, factor))
     
     st.markdown("### 📊 Weekly Goals")
+    for goal in plan["weekly_goals"]:
+        with st.expander(f"🎯 {goal['goal']}"):
+            st.markdown(f"**Target:** {goal['target']}")
+            st.markdown("**Tips:**")
+            for tip in goal['tips']:
+                st.markdown(f"- {tip}")
     
-    goals_df = pd.DataFrame(plan["weekly_goals"])
-    if not goals_df.empty:
-        for _, row in goals_df.iterrows():
-            st.markdown(f"**{row['goal']}** - Target: {row['target']}")
+    st.markdown("### 📅 Daily Action Plan")
     
-    st.markdown("### 📅 Daily Schedule")
-    
-    # Create tabs for each day
-    days = list(plan["daily_schedule"].keys())
+    days = list(plan["daily_routine"].keys())
     tabs = st.tabs(days)
     
     for tab, day in zip(tabs, days):
         with tab:
-            activities = plan["daily_schedule"][day]
-            
-            # Group by category
-            categories = {}
+            activities = plan["daily_routine"][day]
             for activity in activities:
-                cat = activity["category"]
-                if cat not in categories:
-                    categories[cat] = []
-                categories[cat].append(activity)
-            
-            # Display activities by category
-            for category, acts in categories.items():
-                st.markdown(f"#### {category}")
-                for act in acts:
-                    with st.container():
-                        col1, col2 = st.columns([1, 3])
-                        with col1:
-                            st.markdown(f"**{act['time']}**")
-                        with col2:
-                            st.markdown(f"{act['activity']}")
-                            if act['duration'] != "N/A":
-                                st.caption(f"Duration: {act['duration']}")
-                st.markdown("")
+                col1, col2 = st.columns([1, 3])
+                with col1:
+                    st.markdown(f"**{activity['time']}**")
+                with col2:
+                    st.markdown(f"{activity['activity']}")
+                    st.caption(f"⏱️ {activity['duration']}")
+            st.markdown("")
     
     # Tips section
-    st.markdown("### 💡 Success Tips")
+    st.markdown("### 💡 Implementation Tips")
+    col1, col2 = st.columns(2)
     
-    tips_col1, tips_col2 = st.columns(2)
-    
-    with tips_col1:
+    with col1:
         st.markdown("""
-        **Getting Started:**
-        - Start small - don't try to change everything at once
-        - Set reminders on your phone for key activities
-        - Track your progress in a journal or app
-        - Be patient with yourself - change takes time
+        **Start Small:**
+        - Pick 1-2 changes to start
+        - Build gradually
+        - Track progress
         """)
     
-    with tips_col2:
+    with col2:
         st.markdown("""
-        **Staying Consistent:**
-        - Find an accountability partner
-        - Celebrate small wins
-        - Adjust the plan if something isn't working
-        - Focus on progress, not perfection
+        **Stay Consistent:**
+        - Set reminders
+        - Find accountability partner
+        - Celebrate wins
         """)
     
-    # Download option
-    st.markdown("### 📥 Save Your Plan")
-    
-    # Create downloadable text version
-    plan_text = "YOUR 7-DAY WELLNESS PLAN\n\n"
-    plan_text += "=" * 50 + "\n\n"
-    
-    plan_text += "FOCUS AREAS:\n"
-    for area in plan["focus_areas"]:
-        plan_text += f"- {focus_map.get(area, area)}\n"
+    # Download
+    st.markdown("### 📥 Download Your Plan")
+    plan_text = "PERSONALIZED STRESS MANAGEMENT PLAN\n\n"
+    plan_text += "=" * 50 + "\n"
+    plan_text += "RISK FACTORS:\n"
+    for factor in plan["risk_factors"]:
+        plan_text += f"- {factor_map.get(factor, factor)}\n"
     plan_text += "\n"
     
-    plan_text += "WEEKLY GOALS:\n"
-    for goal in plan["weekly_goals"]:
-        plan_text += f"- {goal['goal']} (Target: {goal['target']})\n"
-    plan_text += "\n"
-    
-    plan_text += "DAILY SCHEDULE:\n"
-    plan_text += "=" * 50 + "\n\n"
-    
-    for day, activities in plan["daily_schedule"].items():
+    for day, activities in plan["daily_routine"].items():
         plan_text += f"\n{day.upper()}\n"
         plan_text += "-" * 30 + "\n"
         for act in activities:
-            plan_text += f"{act['time']} - {act['activity']}"
-            if act['duration'] != "N/A":
-                plan_text += f" ({act['duration']})"
-            plan_text += "\n"
-        plan_text += "\n"
+            plan_text += f"{act['time']}: {act['activity']} ({act['duration']})\n"
     
     st.download_button(
-        label="📄 Download Plan as Text File",
+        label="📄 Download Plan as Text",
         data=plan_text,
-        file_name=f"wellness_plan_{st.session_state['user_id']}.txt",
+        file_name=f"stress_plan_{st.session_state['user_id']}.txt",
         mime="text/plain",
         use_container_width=True
     )
@@ -436,186 +423,62 @@ def save_interaction_log():
     st.sidebar.success(f"✅ Session data saved")
 
 # ----------------------------
-# Data loading with realistic synthetic generation
+# Data loading
 # ----------------------------
 st.sidebar.header("📊 Data Management")
-uploaded = st.sidebar.file_uploader("Upload mental health dataset (CSV)", type=["csv"])
+uploaded = st.sidebar.file_uploader("Upload stress risk dataset (CSV)", type=["csv"])
 
 @st.cache_data(show_spinner=True)
-def load_default_sample() -> pd.DataFrame:
-    """Generate realistic synthetic mental health data matching the actual dataset structure."""
-    rng = np.random.default_rng(7)
-    n = 2000
-    
-    # Generate base demographics
-    df = pd.DataFrame({
-        "Gender": rng.choice(["male", "female", "non-binary", "prefer not to say"], 
-                            size=n, p=[0.48, 0.48, 0.03, 0.01]),
-        "Age": rng.integers(18, 70, size=n),
-        "Occupation": rng.choice(["it", "healthcare", "education", "engineering", 
-                                 "finance", "sales", "other"], size=n),
-        "Country": rng.choice(["usa", "india", "uk", "canada", "australia", 
-                              "germany", "other"], size=n),
-    })
-    
-    # Create correlated lifestyle factors
-    high_stress_jobs = df["Occupation"].isin(["healthcare", "finance", "it"])
-    
-    # Stress level (higher in certain occupations)
-    df["Stress_Level"] = rng.integers(0, 11, size=n)
-    df.loc[high_stress_jobs, "Stress_Level"] = np.clip(
-        df.loc[high_stress_jobs, "Stress_Level"] + rng.integers(1, 4, high_stress_jobs.sum()),
-        0, 10
-    )
-    
-    # Sleep hours - inversely correlated with stress
-    base_sleep = rng.normal(7.2, 1.3, size=n)
-    stress_penalty = (df["Stress_Level"] - 5) * 0.15
-    df["Sleep_Hours"] = np.clip(base_sleep - stress_penalty, 3.0, 12.0).round(1)
-    
-    # Work hours - correlated with stress
-    base_work = rng.integers(20, 80, size=n)
-    df["Work_Hours"] = base_work
-    df.loc[high_stress_jobs, "Work_Hours"] = np.clip(
-        df.loc[high_stress_jobs, "Work_Hours"] + rng.integers(5, 15, high_stress_jobs.sum()),
-        20, 80
-    )
-    
-    # Physical activity - inversely correlated with work/stress
-    base_activity = rng.integers(0, 15, size=n)
-    work_penalty = ((df["Work_Hours"] - 40) * 0.1).clip(0, None).astype(int)
-    df["Physical_Activity_Hours"] = np.clip(base_activity - work_penalty, 0, 15)
-    
-    # Social media - higher with stress (escapism) and age
-    age_factor = (40 - df["Age"]) * 0.05
-    stress_factor = df["Stress_Level"] * 0.15
-    df["Social_Media_Usage"] = np.clip(
-        rng.exponential(2.0, size=n) + age_factor.clip(0, None) / 10 + stress_factor / 10,
-        0.5, 12.0
-    ).round(1)
-    
-    # Diet quality - worse with high stress
-    high_stress = df["Stress_Level"] > 7
-    diet_probs = np.ones((n, 3)) * [0.30, 0.45, 0.25]
-    diet_probs[high_stress] = [0.15, 0.45, 0.40]
-    diet_indices = np.array([rng.choice(3, p=prob) for prob in diet_probs])
-    df["Diet_Quality"] = np.array(["healthy", "average", "unhealthy"])[diet_indices]
-    
-    # Smoking - more common with stress
-    smoke_probs = np.ones((n, 4)) * [0.65, 0.18, 0.12, 0.05]
-    smoke_probs[high_stress] = [0.45, 0.25, 0.20, 0.10]
-    smoke_indices = np.array([rng.choice(4, p=prob) for prob in smoke_probs])
-    df["Smoking_Habit"] = np.array(["non-smoker", "occasional smoker", 
-                                     "regular smoker", "heavy smoker"])[smoke_indices]
-    
-    # Alcohol - similar pattern
-    alcohol_probs = np.ones((n, 4)) * [0.30, 0.45, 0.18, 0.07]
-    alcohol_probs[high_stress] = [0.20, 0.40, 0.28, 0.12]
-    alcohol_indices = np.array([rng.choice(4, p=prob) for prob in alcohol_probs])
-    df["Alcohol_Consumption"] = np.array(["non-drinker", "social drinker", 
-                                           "regular drinker", "heavy drinker"])[alcohol_indices]
-    
-    # Build realistic risk score using proper coefficients
-    risk_score = np.zeros(n)
-    
-    # Base risk
-    risk_score += -2.5
-    
-    # Age (U-shaped: young adults and elderly at higher risk)
-    age_normalized = (df["Age"] - df["Age"].mean()) / df["Age"].std()
-    risk_score += 0.15 * age_normalized**2
-    
-    # Lifestyle factors (main predictors)
-    risk_score += 2.5 * (df["Stress_Level"] / 10)  # STRONGEST predictor
-    risk_score += 1.8 * ((7.5 - df["Sleep_Hours"]).clip(0, None) / 5)  # Sleep deprivation
-    risk_score += 1.2 * ((df["Work_Hours"] - 40).clip(0, None) / 30)  # Overwork
-    risk_score += 0.9 * ((3 - df["Physical_Activity_Hours"]).clip(0, None) / 3)  # Low exercise
-    risk_score += 1.0 * ((df["Social_Media_Usage"] - 3).clip(0, None) / 8)  # Excessive SM
-    
-    # Health habits
-    risk_score += 0.6 * (df["Diet_Quality"] == "unhealthy").astype(int)
-    risk_score += 0.8 * df["Smoking_Habit"].isin(["regular smoker", "heavy smoker"]).astype(int)
-    risk_score += 0.7 * (df["Alcohol_Consumption"] == "heavy drinker").astype(int)
-    
-    # Occupational stress
-    risk_score += 0.4 * high_stress_jobs.astype(int)
-    
-    # Add realistic noise (mental health is complex!)
-    risk_score += rng.normal(0, 1.2, size=n)
-    
-    # Convert to probability
-    prob = 1 / (1 + np.exp(-risk_score + 3))
-    
-    # Generate binary outcome with proper randomness
-    df["Mental_Health_Condition"] = (rng.uniform(0, 1, size=n) < prob).astype(int)
-    
-    # Consultation history (people with conditions more likely to have consulted)
-    has_condition = df["Mental_Health_Condition"] == 1
-    consult_prob = np.where(has_condition, 0.65, 0.15)
-    df["Consultation_History"] = (rng.uniform(0, 1, size=n) < consult_prob).astype(int)
-    df["Consultation_History"] = df["Consultation_History"].map({1: "yes", 0: "no"})
-    
-    # Medication usage (subset of those who consulted)
-    has_consulted = df["Consultation_History"] == "yes"
-    med_prob = np.where(has_condition & has_consulted, 0.70, 0.05)
-    df["Medication_Usage"] = (rng.uniform(0, 1, size=n) < med_prob).astype(int)
-    df["Medication_Usage"] = df["Medication_Usage"].map({1: "yes", 0: "no"})
-    
-    # Convert target to yes/no
-    df["Mental_Health_Condition"] = df["Mental_Health_Condition"].map({1: "yes", 0: "no"})
-    
-    return df
+def load_default_sample() -> pd.DataFrame | None:
+    """Load default Stress Risk Dataset."""
+    try:
+        df = pd.read_csv("data/stress_risk_data.csv")
+        return df
+    except Exception:
+        st.error("Could not load default dataset. Please upload a CSV file.")
+        return None
 
 if uploaded:
     df = pd.read_csv(uploaded)
     st.sidebar.success("✅ Dataset loaded from upload.")
 else:
     df = load_default_sample()
-    st.sidebar.info("Using synthetic sample data.")
+    if df is not None:
+        st.sidebar.info("Using stress risk dataset.")
 
-# Expected columns based on dataset description (excluding Severity to avoid data leakage)
-EXPECTED_COLUMNS = [
-    "Gender", "Age", "Occupation", "Country", "Consultation_History",
-    "Stress_Level", "Sleep_Hours", "Work_Hours", 
-    "Physical_Activity_Hours", "Social_Media_Usage", "Diet_Quality",
-    "Smoking_Habit", "Alcohol_Consumption", "Medication_Usage",
-    "Mental_Health_Condition"
-]
+if df is None:
+    st.stop()
 
-# Check for missing columns and adapt
-available_cols = [c for c in EXPECTED_COLUMNS if c in df.columns]
-
-TARGET_COL = "Mental_Health_Condition"
-
-# Use only available columns
-df = df[available_cols].copy()
-
-# Define column types (excluding Severity)
-CAT_COLS = [c for c in ["Gender", "Occupation", "Country", "Consultation_History",
-                         "Diet_Quality", "Smoking_Habit", 
-                         "Alcohol_Consumption", "Medication_Usage"] if c in df.columns]
-
-NUM_COLS = [c for c in ["Age", "Stress_Level", "Sleep_Hours", "Work_Hours",
-                         "Physical_Activity_Hours", "Social_Media_Usage"] if c in df.columns]
+# Define feature columns
+NUM_COLS = [c for c in df.columns if c not in ["user_id", "stress_risk_score", 
+                                               "stress_level_category", "data_split", "gender", "occupation"]]
+CAT_COLS = ["gender", "occupation"]
+TARGET_COL = "stress_risk_score"
 
 # Clean data
-for c in CAT_COLS + [TARGET_COL]:
-    df[c] = df[c].astype(str).str.strip().str.lower()
+df = df[[c for c in df.columns if c not in ["user_id", "data_split"]]].copy()
 
-# Map target to binary
-if df[TARGET_COL].isin(["yes", "no"]).any():
-    df[TARGET_COL] = df[TARGET_COL].map({"yes": 1, "no": 0}).fillna(0).astype(int)
-else:
-    df[TARGET_COL] = pd.to_numeric(df[TARGET_COL], errors="coerce").fillna(0).astype(int)
-
-# Numeric columns
-for c in NUM_COLS:
-    df[c] = pd.to_numeric(df[c], errors="coerce")
-    df[c] = df[c].fillna(df[c].median())
-
-# Categorical columns
+# ---- categorical cleaning + casting (CRITICAL) ----
 for c in CAT_COLS:
-    df[c] = df[c].astype("category")
+    if c in df.columns:
+        df[c] = (
+            df[c]
+            .astype(str)
+            .str.strip()
+            .str.lower()
+            .replace({"": np.nan})
+        )
+        df[c] = df[c].astype("category")  # make it a pandas categorical
+
+# numeric cleaning
+for c in NUM_COLS:
+    if c in df.columns:
+        df[c] = pd.to_numeric(df[c], errors="coerce")
+        df[c] = df[c].fillna(df[c].median())
+
+if TARGET_COL in df.columns:
+    df[TARGET_COL] = pd.to_numeric(df[TARGET_COL], errors="coerce")
+    df["target_binary"] = (df[TARGET_COL] > df[TARGET_COL].median()).astype(int)
 
 # ----------------------------
 # Model training
@@ -635,44 +498,61 @@ class Artifacts:
 
 @st.cache_resource(show_spinner=True)
 def train_all(df: pd.DataFrame) -> Artifacts:
-    feature_cols = [c for c in df.columns if c != TARGET_COL]
+    # ensure categorical dtype present before splitting
+    feature_cols = [c for c in NUM_COLS + CAT_COLS if c in df.columns]
     X = df[feature_cols].copy()
-    y = df[TARGET_COL].astype(int)
 
-    # Split with stratification if possible
-    if y.nunique() < 2 or y.value_counts().min() < 10:
-        X_tr, X_temp, y_tr, y_temp = train_test_split(
-            X, y, test_size=0.40, random_state=42
-        )
-        X_val, X_te, y_val, y_te = train_test_split(
-            X_temp, y_temp, test_size=0.50, random_state=42
-        )
+    # enforce categorical dtype for declared categorical columns
+    for c in [col for col in CAT_COLS if col in X.columns]:
+        if not pd.api.types.is_categorical_dtype(X[c]):
+            X[c] = X[c].astype("category")
+
+    y = df["target_binary"].astype(int)
+
+    # split (stratify if possible)
+    if y.nunique() < 2 or y.value_counts().min() < 5:
+        X_tr, X_temp, y_tr, y_temp = train_test_split(X, y, test_size=0.40, random_state=42)
+        X_val, X_te, y_val, y_te = train_test_split(X_temp, y_temp, test_size=0.50, random_state=42)
     else:
-        X_tr, X_temp, y_tr, y_temp = train_test_split(
-            X, y, test_size=0.40, stratify=y, random_state=42
-        )
-        X_val, X_te, y_val, y_te = train_test_split(
-            X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=42
-        )
+        X_tr, X_temp, y_tr, y_temp = train_test_split(X, y, test_size=0.40, stratify=y, random_state=42)
+        X_val, X_te, y_val, y_te = train_test_split(X_temp, y_temp, test_size=0.50, stratify=y_temp, random_state=42)
 
-    cat_categories = {c: list(X_tr[c].cat.categories) for c in CAT_COLS}
+    # keep categorical dtype after split
+    for frame in (X_tr, X_val, X_te):
+        for c in [col for col in CAT_COLS if col in frame.columns]:
+            if not pd.api.types.is_categorical_dtype(frame[c]):
+                frame[c] = frame[c].astype("category")
+
+    # collect training categories and add an 'unknown' bucket for safety
+    cat_categories: Dict[str, List[str]] = {}
+    for c in CAT_COLS:
+        if c in X_tr.columns:
+            cats = list(pd.Categorical(X_tr[c]).categories)
+            if "unknown" not in cats:
+                cats = cats + ["unknown"]
+            # re-cast with explicit categories to lock them in
+            X_tr[c] = pd.Categorical(X_tr[c], categories=cats)
+            X_val[c] = pd.Categorical(X_val[c], categories=cats)
+            X_te[c]  = pd.Categorical(X_te[c],  categories=cats)
+            cat_categories[c] = cats
 
     def fit_lgbm(Xdf, y, seed):
+        cat_feats = [c for c in CAT_COLS if c in Xdf.columns]
         clf = lgb.LGBMClassifier(
-            n_estimators=500, learning_rate=0.05,
-            num_leaves=31, max_depth=6,
-            subsample=0.8, colsample_bytree=0.8,
-            random_state=seed, verbose=-1
+            n_estimators=500, learning_rate=0.05, num_leaves=31, max_depth=6,
+            subsample=0.8, colsample_bytree=0.8, random_state=seed, verbose=-1
         )
-        clf.fit(Xdf, y, categorical_feature=CAT_COLS,
-                eval_set=[(Xdf, y)],
-                callbacks=[lgb.early_stopping(50, verbose=False)])
+        clf.fit(
+            Xdf, y,
+            categorical_feature=cat_feats,   # names are OK with pandas DataFrame
+            eval_set=[(Xdf, y)],
+            callbacks=[lgb.early_stopping(50, verbose=False)]
+        )
         return clf
 
-    seeds = [11, 22, 33, 44, 55]
-    models = [fit_lgbm(X_tr, y_tr, s) for s in seeds]
+    models = [fit_lgbm(X_tr, y_tr, s) for s in [11, 22, 33, 44, 55]]
 
-    calibrators = []
+    calibrators: List[CalibratedClassifierCV] = []
     p_val_stack = []
     for m in models:
         cal = CalibratedClassifierCV(m, method="isotonic", cv="prefit")
@@ -691,26 +571,34 @@ def train_all(df: pd.DataFrame) -> Artifacts:
     val_scores = np.abs(y_val.values - p_val) / total_scale
     q = float(np.quantile(val_scores, 1 - alpha))
 
-    scaler = StandardScaler().fit(X_tr[NUM_COLS])
-    Xtr_scaled = scaler.transform(X_tr[NUM_COLS])
+    # OOD on numeric features
+    num_feats_present = [c for c in NUM_COLS if c in X_tr.columns]
+    if len(num_feats_present) == 0:
+        # ensure scaler/ood still exist even if no numeric columns (unlikely)
+        scaler = StandardScaler().fit(np.zeros((len(X_tr), 1)))
+        Xtr_scaled = scaler.transform(np.zeros((len(X_tr), 1)))
+    else:
+        scaler = StandardScaler().fit(X_tr[num_feats_present])
+        Xtr_scaled = scaler.transform(X_tr[num_feats_present])
+
     ood = IsolationForest(n_estimators=300, contamination=0.05, random_state=7)
     ood.fit(Xtr_scaled)
 
+    # numeric ranges for UI what-if (optional)
     ranges = {}
     for c in NUM_COLS:
-        vals = X_tr[c].dropna()
-        if len(vals) > 0:
-            lo, hi = np.percentile(vals, [2, 98])
-            if hi <= lo:
-                hi = lo + 1.0
-            ranges[c] = [float(lo), float(hi)]
-        else:
-            ranges[c] = [0.0, 1.0]
+        if c in X_tr.columns:
+            vals = X_tr[c].dropna()
+            if len(vals) > 0:
+                lo, hi = np.percentile(vals, [2, 98])
+                if hi <= lo:
+                    hi = lo + 1.0
+                ranges[c] = [float(lo), float(hi)]
 
+    # SHAP explainer
     explainer = shap.TreeExplainer(models[0])
-
-    return Artifacts(models, calibrators, q, eps, scaler, ood, 
-                    cat_categories, ranges, explainer, feature_cols)
+    
+    return Artifacts(models, calibrators, q, eps, scaler, ood, cat_categories, ranges, explainer, feature_cols)
 
 with st.spinner("🔄 Training model..."):
     arts = train_all(df)
@@ -718,31 +606,36 @@ with st.spinner("🔄 Training model..."):
 st.sidebar.success("✅ Model trained successfully")
 
 # ----------------------------
-# Inference helpers
+# Inference
 # ----------------------------
 def _prepare_df_row(d: Dict) -> pd.DataFrame:
     row = {k: d.get(k, None) for k in arts.feature_cols}
     X = pd.DataFrame([row])
 
-    for c in NUM_COLS:
-        X[c] = pd.to_numeric(X[c], errors="coerce")
-        if X[c].isna().any():
-            X[c] = X[c].fillna(df[c].median())
+    # numeric fill
+    for c in [col for col in NUM_COLS if col in X.columns]:
+        # fallback to median from training df if present, else 0
+        if c in df.columns:
+            med = df[c].median()
+        else:
+            med = 0.0
+        X[c] = pd.to_numeric(X[c], errors="coerce").fillna(med)
 
-    for c in CAT_COLS:
-        cats = arts.cat_categories[c]
+    # categorical: normalize + enforce training categories with 'unknown'
+    for c in [col for col in CAT_COLS if col in X.columns]:
         X[c] = X[c].astype(str).str.strip().str.lower()
-        X[c] = pd.Categorical(X[c], categories=cats)
-        if X[c].isna().any():
-            if "unknown" in cats:
-                X[c] = X[c].cat.add_categories(["unknown"]).fillna("unknown")
-            else:
-                X[c] = X[c].fillna(cats[0])
-        X[c] = X[c].astype("category")
+        cats = arts.cat_categories.get(c, [])
+        if cats:
+            X[c] = pd.Categorical(X[c], categories=cats)
+            if X[c].isna().any():
+                X[c] = X[c].fillna("unknown")
+        else:
+            X[c] = pd.Categorical(X[c])
 
+    # keep column order
     return X[arts.feature_cols]
 
-def predict_patient(p: Dict) -> Dict:
+def predict_user(p: Dict) -> Dict:
     X = _prepare_df_row(p)
     ps = np.stack([prob_of_one(cal, X) for cal in arts.calibrators], axis=0)
     p_mean = float(ps.mean())
@@ -760,18 +653,21 @@ def predict_patient(p: Dict) -> Dict:
         key=lambda t: abs(t[1]), reverse=True
     )[:5]
 
-    Xs = X[NUM_COLS].copy()
-    score = arts.ood.decision_function(arts.scaler.transform(Xs))[0]
+    # OOD on numeric columns only
+    num_feats_present = [c for c in arts.feature_cols if c in NUM_COLS and c in X.columns]
+    if len(num_feats_present) == 0:
+        Xs = np.zeros((1, 1))
+    else:
+        Xs = arts.scaler.transform(X[num_feats_present])
+    score = arts.ood.decision_function(Xs)[0]
     ood_flag = bool(score < -0.1)
-
-    aleatoric_std = float(np.sqrt(max(aleatoric, 0.0)))
 
     return {
         "risk": p_mean,
         "uncertainty": {
             "lower": lo,
             "upper": hi,
-            "aleatoric_std": aleatoric_std,
+            "aleatoric_std": float(np.sqrt(max(aleatoric, 0.0))),
             "epistemic_std": p_std,
         },
         "drivers": drivers,
@@ -782,79 +678,90 @@ def predict_patient(p: Dict) -> Dict:
 # User input form
 # ----------------------------
 st.markdown("---")
-st.header("📝 Patient Information Input")
+st.header("📝 Your Information")
 
-with st.form("patient_form"):
-    st.subheader("Demographic Information")
-    col1, col2 = st.columns(2)
+with st.form("user_form"):
+    st.subheader("Demographics & Work")
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        gender = st.selectbox("Gender", options=arts.cat_categories["Gender"])
-        age = st.number_input("Age", min_value=18, max_value=200, value=30)
-        occupation = st.selectbox("Occupation", options=arts.cat_categories["Occupation"])
-    
+        age = st.number_input("Age", 18, 80, 30)
     with col2:
-        country = st.selectbox("Country", options=arts.cat_categories["Country"])
-        consultation = st.selectbox("Consultation History", 
-                                    options=arts.cat_categories["Consultation_History"])
-    
-    st.subheader("Lifestyle Factors")
-    col3, col4 = st.columns(2)
-    
+        gender_choices = arts.cat_categories.get("gender", ["male", "female", "other"])
+        gender = st.selectbox("Gender", gender_choices)
     with col3:
-        stress = st.slider("Stress Level", 0, 10, 5, 
-                          help="0 = No stress, 10 = Extreme stress")
-        sleep = st.slider("Sleep Hours (per night)", 3.0, 12.0, 7.0, 0.5)
-        work = st.slider("Work Hours (per week)", 0, 80, 40)
-    
+        occ_choices = arts.cat_categories.get("occupation", ["engineer", "nurse", "student"])
+        occupation = st.selectbox("Occupation", occ_choices)
     with col4:
-        exercise = st.slider("Physical Activity (hours/week)", 0, 20, 3)
-        social_media = st.slider("Social Media Usage (hours/day)", 0.0, 12.0, 2.0, 0.5)
-        diet = st.selectbox("Diet Quality", options=arts.cat_categories["Diet_Quality"])
+        work_hours = st.number_input("Work Hours/Week", 0, 80, 40)
     
-    st.subheader("Health Habits")
-    col5, col6 = st.columns(2)
+    st.subheader("Work & Stress Factors")
+    col5, col6, col7 = st.columns(3)
     
     with col5:
-        smoking = st.selectbox("Smoking Habit", options=arts.cat_categories["Smoking_Habit"])
-        alcohol = st.selectbox("Alcohol Consumption", 
-                              options=arts.cat_categories["Alcohol_Consumption"])
-    
+        job_satisfaction = st.slider("Job Satisfaction (1-10)", 1, 10, 5)
+        workload = st.slider("Workload Rating (1-10)", 1, 10, 5)
     with col6:
-        medication = st.selectbox("Medication Usage", 
-                                 options=arts.cat_categories["Medication_Usage"])
+        stress_events = st.slider("Stress Events (Last Week)", 0, 10, 2)
+        breaks = st.slider("Breaks/Workday", 0, 6, 3)
+    with col7:
+        commute = st.number_input("Commute Time (min)", 0, 180, 30)
+        outdoor_time = st.slider("Outdoor Time (hr/day)", 0.0, 8.0, 1.0, 0.5)
     
-    submitted = st.form_submit_button("🔍 Get Risk Assessment", type="primary", 
-                                     use_container_width=True)
+    st.subheader("Sleep & Health")
+    col8, col9 = st.columns(2)
+    
+    with col8:
+        sleep_quality = st.slider("Sleep Quality (1-10)", 1, 10, 7)
+        sleep_duration = st.slider("Sleep Duration (hours)", 3.0, 12.0, 7.0, 0.5)
+        exercise = st.slider("Physical Activity (times/week)", 0, 7, 3)
+    
+    with col9:
+        coffee = st.number_input("Coffee (cups/day)", 0.0, 10.0, 2.0)
+        alcohol = st.number_input("Alcohol (drinks/week)", 0, 20, 2)
+        screen_time = st.slider("Screen Time (hr/day)", 0.0, 16.0, 5.0, 0.5)
+    
+    st.subheader("Lifestyle")
+    col10, col11 = st.columns(2)
+    
+    with col10:
+        social = st.slider("Social Interactions (count/week)", 0, 30, 8)
+        screen_unlocks = st.number_input("Screen Unlocks/Day", 0, 500, 80)
+    
+    submitted = st.form_submit_button("🔍 Assess Stress Risk", type="primary", use_container_width=True)
 
 if submitted:
-    patient_data = {
-        "Gender": gender,
-        "Age": age,
-        "Occupation": occupation,
-        "Country": country,
-        "Consultation_History": consultation,
-        "Stress_Level": stress,
-        "Sleep_Hours": sleep,
-        "Work_Hours": work,
-        "Physical_Activity_Hours": exercise,
-        "Social_Media_Usage": social_media,
-        "Diet_Quality": diet,
-        "Smoking_Habit": smoking,
-        "Alcohol_Consumption": alcohol,
-        "Medication_Usage": medication
+    user_data = {
+        "age": age,
+        "gender": gender,
+        "occupation": occupation,
+        "work_hours_per_week": work_hours,
+        "job_satisfaction": job_satisfaction,
+        "workload_rating": workload,
+        "stress_event_count_last_week": stress_events,
+        "breaks_per_workday": breaks,
+        "commute_time_min": commute,
+        "outdoor_time_hr": outdoor_time,
+        "sleep_quality_rating": sleep_quality,
+        "sleep_duration_hr": sleep_duration,
+        "physical_activity_frequency": exercise,
+        "coffee_intake_cups": coffee,
+        "alcohol_intake_per_week": alcohol,
+        "screen_time_hr": screen_time,
+        "social_interactions_count": social,
+        "screen_unlocks_per_day": screen_unlocks
     }
     
-    pred = predict_patient(patient_data)
+    pred = predict_user(user_data)
     st.session_state["current_prediction"] = pred
-    st.session_state["current_patient"] = patient_data
+    st.session_state["current_user"] = user_data
     
     st.session_state["interaction_log"].append({
         "timestamp": pd.Timestamp.now().isoformat(),
         "event": "prediction_requested",
         "user_id": st.session_state["user_id"],
         "group": st.session_state["study_mode"],
-        "patient_data": patient_data,
+        "user_data": user_data,
         "prediction": pred
     })
 
@@ -863,20 +770,19 @@ if submitted:
 # ----------------------------
 if "current_prediction" in st.session_state:
     st.markdown("---")
-    st.header("📊 Risk Assessment Results")
+    st.header("📊 Stress Risk Assessment Results")
     
     pred = st.session_state["current_prediction"]
     risk = pred["risk"]
     
-    # G1: Basic display (no uncertainty, no explanations)
+    # G1: Basic display
     if st.session_state["study_mode"] == "G1":
-        st.markdown("### Your Mental Health Risk Score")
+        st.markdown("### Your Stress Risk Score")
         
-        # Simple risk gauge
         fig = go.Figure(go.Indicator(
             mode = "gauge+number",
             value = risk * 100,
-            title = {'text': "Risk Level (%)"},
+            title = {'text': "Stress Risk Level (%)"},
             gauge = {
                 'axis': {'range': [None, 100]},
                 'bar': {'color': "darkblue"},
@@ -884,41 +790,33 @@ if "current_prediction" in st.session_state:
                     {'range': [0, 33], 'color': "lightgreen"},
                     {'range': [33, 66], 'color': "yellow"},
                     {'range': [66, 100], 'color': "salmon"}
-                ],
-                'threshold': {
-                    'line': {'color': "red", 'width': 4},
-                    'thickness': 0.75,
-                    'value': 70
-                }
+                ]
             }
         ))
         fig.update_layout(height=300)
         st.plotly_chart(fig, use_container_width=True)
         
         if risk < 0.33:
-            st.success("✅ Low Risk: Your assessment indicates a low risk for mental health conditions.")
+            st.success("✅ Low Stress Risk")
         elif risk < 0.66:
-            st.warning("⚠️ Moderate Risk: Your assessment indicates moderate risk. Consider consulting with a mental health professional.")
+            st.warning("⚠️ Moderate Stress Risk")
         else:
-            st.error("🚨 High Risk: Your assessment indicates elevated risk. We recommend consulting with a mental health professional soon.")
+            st.error("🚨 High Stress Risk")
     
-    # G2: Enhanced display (with uncertainty and explanations)
+    # G2: Enhanced display
     else:
         col1, col2 = st.columns([1, 1])
         
         with col1:
-            st.markdown("### Risk Assessment with Uncertainty")
+            st.markdown("### Stress Risk with Uncertainty")
             
-            # Enhanced gauge with uncertainty band
             lo = pred["uncertainty"]["lower"]
             hi = pred["uncertainty"]["upper"]
             
-            fig = go.Figure()
-            fig.add_trace(go.Indicator(
-                mode = "gauge+number+delta",
+            fig = go.Figure(go.Indicator(
+                mode = "gauge+number",
                 value = risk * 100,
-                title = {'text': "Risk Level (%)"},
-                delta = {'reference': 50, 'increasing': {'color': "red"}},
+                title = {'text': "Stress Risk Level (%)"},
                 gauge = {
                     'axis': {'range': [None, 100]},
                     'bar': {'color': "darkblue"},
@@ -926,192 +824,66 @@ if "current_prediction" in st.session_state:
                         {'range': [0, 33], 'color': "lightgreen"},
                         {'range': [33, 66], 'color': "yellow"},
                         {'range': [66, 100], 'color': "salmon"}
-                    ],
-                    'threshold': {
-                        'line': {'color': "red", 'width': 4},
-                        'thickness': 0.75,
-                        'value': 70
-                    }
+                    ]
                 }
             ))
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
             
-            # Uncertainty metrics
-            st.markdown("#### Prediction Confidence")
+            st.markdown("#### Uncertainty Metrics")
             unc_width = hi - lo
             c1, c2, c3 = st.columns(3)
             c1.metric("Lower Bound", f"{lo*100:.1f}%")
             c2.metric("Upper Bound", f"{hi*100:.1f}%")
-            c3.metric("Uncertainty Width", f"±{unc_width*50:.1f}%")
-            
-            # Uncertainty breakdown
-            st.markdown("#### Uncertainty Sources")
-            epi = pred["uncertainty"]["epistemic_std"]
-            alea = pred["uncertainty"]["aleatoric_std"]
-            
-            col_unc1, col_unc2 = st.columns(2)
-            
-            with col_unc1:
-                st.metric(
-                    "🎲 Aleatoric Uncertainty (Data)", 
-                    f"{alea:.3f}",
-                    help="Inherent randomness - cannot be reduced"
-                )
-                st.caption("Represents irreducible randomness in outcomes")
-            
-            with col_unc2:
-                st.metric(
-                    "🤖 Epistemic Uncertainty (Model)", 
-                    f"{epi:.3f}",
-                    help="Model uncertainty - can be reduced with more data"
-                )
-                st.caption("Represents model's confidence level")
-            
-            # Visual breakdown
-            unc_df = pd.DataFrame({
-                "Type": ["Aleatoric\n(Data)", "Epistemic\n(Model)"],
-                "Value": [alea, epi],
-                "Category": ["Data Uncertainty", "Model Uncertainty"]
-            })
-            
-            fig_unc = px.bar(
-                unc_df, 
-                x="Type", 
-                y="Value", 
-                color="Category",
-                title="Uncertainty Breakdown",
-                color_discrete_map={
-                    "Data Uncertainty": "#e74c3c",
-                    "Model Uncertainty": "#3498db"
-                }
-            )
-            fig_unc.update_layout(showlegend=False, height=250)
-            st.plotly_chart(fig_unc, use_container_width=True)
-            
-            with st.expander("ℹ️ Understanding Uncertainty Types"):
-                st.markdown("""
-                **Aleatoric Uncertainty (Data Uncertainty):**
-                - Inherent randomness in mental health outcomes
-                - Cannot be reduced even with more data
-                - Reflects natural variability in human behavior
-                
-                **Epistemic Uncertainty (Model Uncertainty):**
-                - Model's lack of knowledge
-                - Can be reduced by collecting more training data
-                - Higher when model hasn't seen similar cases
-                
-                **Total Uncertainty = √(Aleatoric² + Epistemic²)**
-                """)
-            
-            if pred.get("ood_flag"):
-                st.warning("⚠️ **Note:** Your profile is unusual compared to typical cases. Prediction may be less reliable.")
+            c3.metric("Range", f"±{unc_width*50:.1f}%")
         
         with col2:
-            st.markdown("### AI Explanation: Key Factors")
-            st.markdown("These factors had the most impact on your risk assessment:")
+            st.markdown("### Key Stress Drivers")
+            st.markdown("Factors with the most impact on your risk score:")
             
-            # SHAP explanation
             drivers = pred["drivers"]
-            driver_df = pd.DataFrame(drivers, columns=["Feature", "Impact"])
+            driver_df = pd.DataFrame(drivers, columns=["Factor", "Impact"])
             driver_df["Direction"] = driver_df["Impact"].apply(
-                lambda x: "Increases Risk ↑" if x > 0 else "Decreases Risk ↓"
+                lambda x: "Increases ↑" if x > 0 else "Decreases ↓"
             )
             
-            # Create horizontal bar chart
             fig_shap = px.bar(
-                driver_df,
-                y="Feature",
-                x="Impact",
+                driver_df, y="Factor", x="Impact", orientation='h',
                 color="Direction",
-                orientation='h',
-                title="Feature Impact on Risk Prediction",
-                color_discrete_map={
-                    "Increases Risk ↑": "#ff6b6b",
-                    "Decreases Risk ↓": "#51cf66"
-                }
+                color_discrete_map={"Increases ↑": "#ff6b6b", "Decreases ↓": "#51cf66"}
             )
             fig_shap.update_layout(height=350, yaxis={'categoryorder':'total ascending'})
             st.plotly_chart(fig_shap, use_container_width=True)
-            
-            with st.expander("📖 Understanding the Factors"):
-                for feat, impact in drivers[:3]:
-                    direction = "increasing" if impact > 0 else "reducing"
-                    st.markdown(f"**{feat}:** This factor is {direction} your risk score.")
-        
-        # Risk interpretation
-        st.markdown("### 🎯 Risk Interpretation")
-        if risk < 0.33:
-            st.success(f"""
-            ✅ **Low Risk** (Uncertainty: {(1-unc_width)*100:.0f}%)
-            
-            Your assessment indicates low risk for mental health conditions. The model is fairly confident about this prediction.
-            """)
-        elif risk < 0.66:
-            st.warning(f"""
-            ⚠️ **Moderate Risk** (Uncertainty: {(1-unc_width)*100:.0f}%)
-            
-            Your assessment indicates moderate risk. Consider consulting with a mental health professional.
-            """)
-        else:
-            st.error(f"""
-            🚨 **High Risk** (Uncertainty: {(1-unc_width)*100:.0f}%)
-            
-            Your assessment indicates elevated risk. We recommend consulting with a mental health professional soon.
-            """)
     
-    # ----------------------------
-    # Wellness plan generation
-    # ----------------------------
+    # Stress management plan
     st.markdown("---")
-    st.header("📅 Your Personalized 7-Day Wellness Plan")
+    st.header("📅 Your Personalized Stress Management Plan")
     
-    if st.button("Generate My Wellness Plan", type="primary", use_container_width=True):
-        patient_data = st.session_state["current_patient"]
-        plan = generate_wellness_plan(patient_data, pred)
-        st.session_state["wellness_plan"] = plan
+    if st.button("Generate My Plan", type="primary", use_container_width=True):
+        plan = generate_stress_management_plan(st.session_state["current_user"], pred)
+        st.session_state["stress_plan"] = plan
         
         st.session_state["interaction_log"].append({
             "timestamp": pd.Timestamp.now().isoformat(),
-            "event": "wellness_plan_generated",
+            "event": "plan_generated",
             "user_id": st.session_state["user_id"],
             "group": st.session_state["study_mode"]
         })
     
-    if "wellness_plan" in st.session_state:
-        display_wellness_plan(st.session_state["wellness_plan"])
+    if "stress_plan" in st.session_state:
+        display_stress_plan(st.session_state["stress_plan"])
         
-        # Trust survey
+        # Feedback survey
         st.markdown("---")
-        st.header("📋 Quick Feedback")
+        st.header("📋 Feedback Survey")
         
-        with st.form("trust_survey"):
-            st.markdown("Please help us improve by answering these questions:")
+        with st.form("feedback_form"):
+            trust = st.slider("Trust in this assessment?", 1, 5, 3)
+            follow = st.slider("Likelihood to follow recommendations?", 1, 5, 3)
+            useful = st.slider("Usefulness of the assessment?", 1, 5, 3)
+            comments = st.text_area("Additional comments?", placeholder="Your feedback...")
             
-            trust = st.slider(
-                "How much do you trust this AI assessment?",
-                1, 5, 3,
-                help="1 = Do not trust at all, 5 = Trust completely"
-            )
-            
-            follow = st.slider(
-                "How likely are you to follow the wellness plan recommendations?",
-                1, 5, 3,
-                help="1 = Very unlikely, 5 = Very likely"
-            )
-            
-            useful = st.slider(
-                "How useful did you find this assessment?",
-                1, 5, 3,
-                help="1 = Not useful at all, 5 = Very useful"
-            )
-            
-            comments = st.text_area(
-                "Any additional comments? (Optional)",
-                placeholder="Share your thoughts about the assessment..."
-            )
-            
-            survey_submit = st.form_submit_button("Submit Feedback", use_container_width=True)
+            survey_submit = st.form_submit_button("Submit", use_container_width=True)
         
         if survey_submit:
             st.session_state["interaction_log"].append({
@@ -1126,78 +898,12 @@ if "current_prediction" in st.session_state:
             })
             
             st.success("✅ Thank you for your feedback!")
-            
-            # Save interaction log
             save_interaction_log()
 
-# ----------------------------
-# Admin/Researcher view
-# ----------------------------
-if st.sidebar.checkbox("🔬 Researcher View (Admin Only)", value=False):
-    st.sidebar.markdown("---")
-    st.markdown("## 📊 Researcher Dashboard")
-    
-    log_dir = Path("study_logs")
-    if log_dir.exists():
-        log_files = list(log_dir.glob("*.json"))
-        
-        if log_files:
-            st.markdown(f"### Collected Data: {len(log_files)} sessions")
-            
-            # Aggregate data
-            all_data = []
-            for log_file in log_files:
-                with open(log_file, 'r') as f:
-                    data = json.load(f)
-                    all_data.extend(data)
-            
-            df_logs = pd.DataFrame(all_data)
-            
-            if not df_logs.empty and 'group' in df_logs.columns:
-                # Group statistics
-                st.markdown("#### Participation by Group")
-                group_counts = df_logs[df_logs['event'] == 'session_start']['group'].value_counts()
-                st.bar_chart(group_counts)
-                
-                # Survey responses
-                survey_data = df_logs[df_logs['event'] == 'survey_completed']
-                if not survey_data.empty:
-                    st.markdown("#### Trust Scores by Group")
-                    
-                    trust_by_group = survey_data.groupby('group')[['trust_score', 'follow_likelihood', 'usefulness']].mean()
-                    st.dataframe(trust_by_group)
-                    
-                    # Visualize
-                    fig = px.bar(
-                        trust_by_group.reset_index().melt(id_vars='group'),
-                        x='variable',
-                        y='value',
-                        color='group',
-                        barmode='group',
-                        title="Average Scores by Group",
-                        labels={'variable': 'Metric', 'value': 'Average Score (1-5)'}
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                # Download all data
-                st.markdown("#### Export Data")
-                csv_data = df_logs.to_csv(index=False)
-                st.download_button(
-                    "📥 Download All Session Data (CSV)",
-                    data=csv_data,
-                    file_name="study_data_export.csv",
-                    mime="text/csv"
-                )
-        else:
-            st.info("No session data collected yet.")
-    else:
-        st.info("No study data directory found.")
-
-# Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666;'>
-    <p>This is a research tool for educational purposes. Always consult healthcare professionals for medical advice.</p>
-    <p>Your data is anonymized and used only for research purposes.</p>
+    <p>This is a research tool for educational purposes.</p>
+    <p>Your data is anonymized and used only for research.</p>
 </div>
 """, unsafe_allow_html=True)

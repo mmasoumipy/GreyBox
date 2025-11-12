@@ -21,11 +21,11 @@ if sys.platform == "darwin" and not ctypes.util.find_library("omp"):
     )
 
 # ---------- Paths ----------
-DATA_PATH = "data/mental_health_data_realistic.csv"
+DATA_PATH = "data/stress_risk_data.csv"
 ART = Path("artifacts"); ART.mkdir(exist_ok=True, parents=True)
 
 print("="*60)
-print("MENTAL HEALTH RISK MODEL TRAINING")
+print("STRESS RISK MODEL TRAINING")
 print("="*60)
 
 # ---------- 1) Load & clean ----------
@@ -33,73 +33,32 @@ print("\n[1/8] Loading dataset...")
 df = pd.read_csv(DATA_PATH)
 print(f"   Loaded {len(df)} records")
 
-# Target column
-target_col = "Mental_Health_Condition"
+# Target column - using stress_risk_score (numeric) or stress_level_category (categorical)
+target_col = "stress_risk_score"
 
-# Feature columns based on the dataset description
-# NOTE: Excluding "Severity" as it's directly related to the target (data leakage)
-feature_cols = [
-    # Demographics
-    "Age", "Gender", "Occupation", "Country",
-    # Mental Health History
-    "Consultation_History",
-    # Lifestyle - Numeric
-    "Stress_Level", "Sleep_Hours", "Work_Hours", 
-    "Physical_Activity_Hours", "Social_Media_Usage",
-    # Lifestyle - Categorical
-    "Diet_Quality", "Smoking_Habit", "Alcohol_Consumption",
-    # Treatment
-    "Medication_Usage"
-]
+# Feature columns - all except target, user_id, data_split, and stress_level_category
+exclude_cols = ["user_id", "data_split", "stress_level_category", target_col]
+feature_cols = [c for c in df.columns if c not in exclude_cols]
 
-# Check which columns exist
-available_cols = [c for c in feature_cols if c in df.columns]
-missing_cols = [c for c in feature_cols if c not in df.columns]
-
-if missing_cols:
-    print(f"   Warning: Missing columns: {missing_cols}")
-    print(f"   Using available columns: {available_cols}")
-    feature_cols = available_cols
+print(f"   Features: {feature_cols}")
+print(f"   Target: {target_col}")
 
 # Subset data
 df = df[feature_cols + [target_col]].copy()
 
-print("\n[2/8] Preprocessing data...")
-
 # Define categorical and numeric columns
-cat_cols = [
-    "Gender", "Occupation", "Country", 
-    "Consultation_History", "Severity",
-    "Diet_Quality", "Smoking_Habit", 
-    "Alcohol_Consumption", "Medication_Usage"
-]
-# Only keep categorical columns that exist
-cat_cols = [c for c in cat_cols if c in df.columns]
+cat_cols = ["gender", "occupation"]
+num_cols = [c for c in feature_cols if c not in cat_cols]
 
-num_cols = [
-    "Age", "Stress_Level", "Sleep_Hours",
-    "Work_Hours", "Physical_Activity_Hours", "Social_Media_Usage"
-]
-# Only keep numeric columns that exist
-num_cols = [c for c in num_cols if c in df.columns]
+print(f"\n[2/8] Preprocessing data...")
+print(f"   Categorical: {cat_cols}")
+print(f"   Numeric: {num_cols}")
 
 # Clean categorical columns - normalize strings
 for c in cat_cols:
     df[c] = df[c].astype(str).str.strip().str.lower()
     # Handle missing values
     df[c] = df[c].replace(['nan', 'none', ''], 'unknown')
-
-# Clean target - handle Yes/No or 1/0
-df[target_col] = df[target_col].astype(str).str.strip().str.lower()
-if df[target_col].isin(['yes', 'no']).any():
-    df[target_col] = df[target_col].map({"yes": 1, "no": 0})
-else:
-    df[target_col] = pd.to_numeric(df[target_col], errors='coerce')
-df[target_col] = df[target_col].fillna(0).astype(int)
-
-# Convert to proper dtypes
-for c in cat_cols:
-    df[c] = df[c].astype("category")
 
 # Numeric columns - coerce and impute
 for c in num_cols:
@@ -109,13 +68,25 @@ for c in num_cols:
         median_val = 0.0
     df[c] = df[c].fillna(median_val)
 
-# Check class balance
-print(f"   Class distribution:")
-print(df[target_col].value_counts())
-print(f"   Positive rate: {df[target_col].mean():.2%}")
+# Target - normalize to 0-1 range (it's already a score)
+df[target_col] = pd.to_numeric(df[target_col], errors="coerce")
+df[target_col] = df[target_col].fillna(df[target_col].median())
+target_min = df[target_col].min()
+target_max = df[target_col].max()
+df["target_binary"] = (df[target_col] > df[target_col].median()).astype(int)
+
+print(f"   Target range: [{target_min:.4f}, {target_max:.4f}]")
+print(f"   Target mean: {df[target_col].mean():.4f}")
+print(f"   Binary target distribution:")
+print(df["target_binary"].value_counts())
+
+# Convert categorical to category dtype
+for c in cat_cols:
+    df[c] = df[c].astype("category")
 
 X = df[feature_cols].copy()
-y = df[target_col].astype(int)
+y = df["target_binary"].astype(int)  # Use binary version for classification
+y_regression = df[target_col].values  # Keep original for regression metrics
 
 # ---------- 2) Split (train/val/test) ----------
 print("\n[3/8] Splitting data...")
@@ -263,13 +234,30 @@ for c in num_cols:
     else:
         ranges[c] = [0.0, 1.0]
 
+# Create units dictionary
 units = {
-    "Age": "years",
-    "Stress_Level": "0-10 scale",
-    "Sleep_Hours": "hours/night",
-    "Work_Hours": "hours/week",
-    "Physical_Activity_Hours": "hours/week",
-    "Social_Media_Usage": "hours/day",
+    "age": "years",
+    "work_hours_per_week": "hours/week",
+    "job_satisfaction": "1-10 scale",
+    "sleep_quality_rating": "1-10 scale",
+    "physical_activity_frequency": "times/week",
+    "coffee_intake_cups": "cups/day",
+    "alcohol_intake_per_week": "drinks/week",
+    "avg_heart_rate": "bpm",
+    "heart_rate_variability": "ms",
+    "sleep_duration_hr": "hours",
+    "steps_count": "steps",
+    "screen_time_hr": "hours/day",
+    "resting_calories_burned": "kcal",
+    "motion_variability": "variance",
+    "time_in_bed_hr": "hours",
+    "workload_rating": "1-10 scale",
+    "stress_event_count_last_week": "count",
+    "breaks_per_workday": "count",
+    "commute_time_min": "minutes",
+    "outdoor_time_hr": "hours/day",
+    "social_interactions_count": "count",
+    "screen_unlocks_per_day": "unlocks",
 }
 
 feature_meta = {
@@ -286,7 +274,10 @@ feature_meta = {
 train_stats = {
     "numeric_median": {c: float(X_tr[c].median()) for c in num_cols},
     "categorical_modes": {c: str(X_tr[c].mode()[0]) if len(X_tr[c].mode()) > 0 else 'unknown' 
-                          for c in cat_cols}
+                          for c in cat_cols},
+    "target_min": float(target_min),
+    "target_max": float(target_max),
+    "target_median": float(df[target_col].median())
 }
 
 # ---------- 8) Save everything ----------
