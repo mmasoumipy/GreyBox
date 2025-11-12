@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy import stats
 
+OUTPUT_DIR = Path("study_outputs")
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 # Set style
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (12, 8)
@@ -226,8 +229,9 @@ def create_visualizations(surveys):
             ax.text(1.5, y_pos + 0.1, sig_text, ha='center', fontsize=14)
     
     plt.tight_layout()
-    plt.savefig('results_boxplots.png', dpi=300, bbox_inches='tight')
-    print("  ✅ Saved: results_boxplots.png")
+    boxplot_path = OUTPUT_DIR / 'results_boxplots.png'
+    plt.savefig(boxplot_path, dpi=300, bbox_inches='tight')
+    print(f"  ✅ Saved: {boxplot_path}")
     
     # Figure 2: Bar chart with error bars
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -261,8 +265,9 @@ def create_visualizations(surveys):
                    f'{height:.2f}', ha='center', va='bottom', fontsize=9)
     
     plt.tight_layout()
-    plt.savefig('results_barplot.png', dpi=300, bbox_inches='tight')
-    print("  ✅ Saved: results_barplot.png")
+    barplot_path = OUTPUT_DIR / 'results_barplot.png'
+    plt.savefig(barplot_path, dpi=300, bbox_inches='tight')
+    print(f"  ✅ Saved: {barplot_path}")
     
     # Figure 3: Distribution histograms
     fig, axes = plt.subplots(3, 2, figsize=(12, 10))
@@ -290,8 +295,9 @@ def create_visualizations(surveys):
         axes[i, 1].grid(axis='y', alpha=0.3)
     
     plt.tight_layout()
-    plt.savefig('results_distributions.png', dpi=300, bbox_inches='tight')
-    print("  ✅ Saved: results_distributions.png")
+    dist_path = OUTPUT_DIR / 'results_distributions.png'
+    plt.savefig(dist_path, dpi=300, bbox_inches='tight')
+    print(f"  ✅ Saved: {dist_path}")
     
     plt.close('all')
 
@@ -332,17 +338,20 @@ def export_results(surveys, results_df):
     print("\n📥 Exporting results...")
     
     # Export survey data
-    surveys.to_csv('survey_responses.csv', index=False)
-    print("  ✅ Saved: survey_responses.csv")
+    survey_path = OUTPUT_DIR / 'survey_responses.csv'
+    surveys.to_csv(survey_path, index=False)
+    print(f"  ✅ Saved: {survey_path}")
     
     # Export statistical results
-    results_df.to_csv('statistical_results.csv', index=False)
-    print("  ✅ Saved: statistical_results.csv")
+    stats_path = OUTPUT_DIR / 'statistical_results.csv'
+    results_df.to_csv(stats_path, index=False)
+    print(f"  ✅ Saved: {stats_path}")
     
     # Export summary statistics
     summary = surveys.groupby('group')[['trust_score', 'follow_likelihood', 'usefulness']].agg(['mean', 'std', 'count'])
-    summary.to_csv('summary_statistics.csv')
-    print("  ✅ Saved: summary_statistics.csv")
+    summary_path = OUTPUT_DIR / 'summary_statistics.csv'
+    summary.to_csv(summary_path)
+    print(f"  ✅ Saved: {summary_path}")
 
 def generate_report(surveys, results_df):
     """Generate a text report."""
@@ -404,10 +413,11 @@ def generate_report(surveys, results_df):
     
     # Save report
     report_text = "\n".join(report)
-    with open('study_report.txt', 'w') as f:
+    report_path = OUTPUT_DIR / 'study_report.txt'
+    with open(report_path, 'w') as f:
         f.write(report_text)
     
-    print("  ✅ Saved: study_report.txt")
+    print(f"  ✅ Saved: {report_path}")
     
     # Print to console
     print("\n" + report_text)
@@ -450,13 +460,13 @@ def main():
     print("✅ ANALYSIS COMPLETE!")
     print("="*70)
     print("\nGenerated files:")
-    print("  📊 results_boxplots.png")
-    print("  📊 results_barplot.png")
-    print("  📊 results_distributions.png")
-    print("  📄 survey_responses.csv")
-    print("  📄 statistical_results.csv")
-    print("  📄 summary_statistics.csv")
-    print("  📄 study_report.txt")
+    print(f"  📊 {OUTPUT_DIR / 'results_boxplots.png'}")
+    print(f"  📊 {OUTPUT_DIR / 'results_barplot.png'}")
+    print(f"  📊 {OUTPUT_DIR / 'results_distributions.png'}")
+    print(f"  📄 {OUTPUT_DIR / 'survey_responses.csv'}")
+    print(f"  📄 {OUTPUT_DIR / 'statistical_results.csv'}")
+    print(f"  📄 {OUTPUT_DIR / 'summary_statistics.csv'}")
+    print(f"  📄 {OUTPUT_DIR / 'study_report.txt'}")
     print("\n")
 
 if __name__ == "__main__":

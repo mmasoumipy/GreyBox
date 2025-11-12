@@ -625,27 +625,26 @@ def run_study_analysis_pipeline():
     except Exception as exc:
         warnings.append(f"Correlation analysis failed: {exc}")
     figure_paths: List[Path] = []
+    output_dir = getattr(study_analysis, "OUTPUT_DIR", Path("study_outputs"))
     try:
         study_analysis.create_visualizations(surveys)
-        figure_paths = [p for p in map(Path, [
-            "results_boxplots.png",
-            "results_barplot.png",
-            "results_distributions.png"
-        ]) if p.exists()]
+        figure_paths = [
+            path for name in ["results_boxplots.png", "results_barplot.png", "results_distributions.png"]
+            if (path := output_dir / name).exists()
+        ]
     except Exception as exc:
         warnings.append(f"Visualization generation failed: {exc}")
     export_paths: List[Path] = []
     try:
         study_analysis.export_results(surveys, stats_df)
-        export_paths = [p for p in map(Path, [
-            "survey_responses.csv",
-            "statistical_results.csv",
-            "summary_statistics.csv"
-        ]) if p.exists()]
+        export_paths = [
+            path for name in ["survey_responses.csv", "statistical_results.csv", "summary_statistics.csv"]
+            if (path := output_dir / name).exists()
+        ]
     except Exception as exc:
         warnings.append(f"Export step failed: {exc}")
     report_text = ""
-    report_path = Path("study_report.txt")
+    report_path = output_dir / "study_report.txt"
     try:
         study_analysis.generate_report(surveys, stats_df)
         if report_path.exists():
@@ -1030,8 +1029,18 @@ def render_admin_dashboard(df: pd.DataFrame, arts: Artifacts):
                 )
                 if analysis.get("qualitative") is not None and not analysis["qualitative"].empty:
                     st.subheader("Participant Comments")
-                    for _, row in analysis["qualitative"].iterrows():
-                        st.write(f"**{row['group']}**: {row['comments']}")
+                    comments_df = analysis["qualitative"].copy()
+                    comments_df = comments_df.rename(columns={"group": "Group", "comments": "Comment"})
+                    st.caption(f"{len(comments_df)} comments collected. Scroll to explore or download the CSV below.")
+                    st.dataframe(comments_df, use_container_width=True, height=220)
+                    st.download_button(
+                        "⬇️ Download comments (CSV)",
+                        comments_df.to_csv(index=False).encode("utf-8"),
+                        file_name="participant_comments.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        key="download_comments_dashboard",
+                    )
                 if analysis.get("figures"):
                     st.subheader("Generated Figures")
                     for path in analysis["figures"]:
