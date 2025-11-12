@@ -39,7 +39,25 @@ def resolve_admin_key() -> str:
     try:
         return st.secrets["ADMIN_KEY"]
     except Exception:
-        return os.environ.get("ADMIN_KEY", "")
+        pass
+    env_key = os.environ.get("ADMIN_KEY")
+    if env_key:
+        return env_key
+    env_path = Path(".env")
+    if env_path.exists():
+        try:
+            for line in env_path.read_text().splitlines():
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                if key.strip() == "ADMIN_KEY":
+                    return value.strip().strip('"').strip("'")
+        except Exception:
+            pass
+    return ""
 
 ADMIN_KEY = resolve_admin_key()
 
