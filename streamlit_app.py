@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 import os
+import re
 
 import numpy as np
 import pandas as pd
@@ -59,6 +60,49 @@ def resolve_admin_key() -> str:
             pass
     return ""
 
+def extract_numeric_user_id(value) -> int | None:
+    """Return integer participant id if present in a string or number."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    match = re.search(r"\d+", str(value))
+    if match:
+        try:
+            return int(match.group())
+        except ValueError:
+            return None
+    return None
+
+def load_last_user_id_from_logs() -> int:
+    """Inspect study_logs to find the highest numeric user id."""
+    log_dir = Path("study_logs")
+    if not log_dir.exists():
+        return 0
+    max_id = 0
+    for log_file in log_dir.glob("*.json"):
+        try:
+            with open(log_file, "r") as f:
+                entries = json.load(f)
+            for entry in entries:
+                num = extract_numeric_user_id(entry.get("user_id"))
+                if num:
+                    max_id = max(max_id, num)
+        except Exception:
+            pass
+        stem_first = log_file.stem.split("_")[0]
+        num = extract_numeric_user_id(stem_first)
+        if num:
+            max_id = max(max_id, num)
+    return max_id
+
+def ensure_participant_counter():
+    """Initialize participant counter based on persisted logs."""
+    if st.session_state.get("next_user_id") is None:
+        st.session_state["next_user_id"] = load_last_user_id_from_logs() + 1
+
+ensure_participant_counter()
+
 ADMIN_KEY = resolve_admin_key()
 
 # ----------------------------
@@ -76,6 +120,8 @@ if "view_mode" not in st.session_state:
     st.session_state["view_mode"] = "participant"
 if "study_analysis_results" not in st.session_state:
     st.session_state["study_analysis_results"] = None
+if "next_user_id" not in st.session_state:
+    st.session_state["next_user_id"] = None
 
 # ----------------------------
 # Study mode selection
@@ -92,6 +138,30 @@ if not st.session_state["admin_mode"]:
         """,
         unsafe_allow_html=True,
     )
+
+def auto_assign_participant_if_needed():
+    """Automatically assign participant id and study group (odd=G1, even=G2)."""
+    if st.session_state["view_mode"] != "participant":
+        return
+    if st.session_state["user_id"]:
+        return
+    ensure_participant_counter()
+    next_id = st.session_state["next_user_id"]
+    st.session_state["next_user_id"] = next_id + 1
+    user_id_str = str(next_id)
+    group = "G2" if next_id % 2 == 0 else "G1"
+    st.session_state["user_id"] = user_id_str
+    st.session_state["study_mode"] = group
+    st.session_state["interaction_log"].append({
+        "timestamp": pd.Timestamp.now().isoformat(),
+        "event": "session_start",
+        "user_id": user_id_str,
+        "group": group,
+        "assignment": "auto_counter"
+    })
+    st.rerun()
+
+auto_assign_participant_if_needed()
 
 with st.expander("🔐 Researcher console", expanded=False):
     if st.session_state["admin_mode"]:
@@ -123,47 +193,6 @@ with st.expander("🔐 Researcher console", expanded=False):
             else:
                 st.error("Incorrect key. Please try again.")
 
-if st.session_state["view_mode"] == "participant" and st.session_state["study_mode"] is None:
-    st.markdown("""
-    ### Welcome to the Stress Risk Assessment Study
-    
-    This system helps assess stress risk based on lifestyle, work, and health metrics.
-    
-    **Please select your study group:**
-    """)
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🔵 Group 1 (Basic Assessment)", use_container_width=True):
-            st.session_state["study_mode"] = "G1"
-            st.rerun()
-    
-    with col2:
-        if st.button("🟢 Group 2 (Enhanced Assessment)", use_container_width=True):
-            st.session_state["study_mode"] = "G2"
-            st.rerun()
-    
-    st.info("💡 Your group assignment will determine which features you'll see during the assessment.")
-    st.stop()
-
-# User ID input
-if st.session_state["view_mode"] == "participant" and not st.session_state["user_id"]:
-    st.markdown("### Participant Information")
-    user_id = st.text_input("Enter your participant ID:", key="uid_input")
-    if st.button("Continue"):
-        if user_id.strip():
-            st.session_state["user_id"] = user_id.strip()
-            st.session_state["interaction_log"].append({
-                "timestamp": pd.Timestamp.now().isoformat(),
-                "event": "session_start",
-                "user_id": user_id.strip(),
-                "group": st.session_state["study_mode"]
-            })
-            st.rerun()
-        else:
-            st.warning("Please enter a valid participant ID")
-    st.stop()
-
 # Display current mode
 if st.session_state["view_mode"] == "participant":
     mode_label = "Basic Assessment" if st.session_state["study_mode"] == "G1" else "Enhanced Assessment"
@@ -171,7 +200,14 @@ if st.session_state["view_mode"] == "participant":
         st.sidebar.success(f"Mode: {mode_label}")
         st.sidebar.caption(f"Participant: {st.session_state['user_id'] or '—'}")
     else:
-        st.caption(f"**Mode:** {mode_label} | **Participant ID:** {st.session_state['user_id'] or '—'}")
+        participant_label = st.session_state["user_id"] or "—"
+        st.caption(f"**Mode:** {mode_label} | **Participant ID:** {participant_label}")
+        if st.session_state["user_id"]:
+            st.info(
+                f"You are Participant #{participant_label}. "
+                f"All odd numbers join Group 1, even numbers join Group 2. "
+                f"Your assignment: **{mode_label}**."
+            )
 
 # ----------------------------
 # Safety helpers
