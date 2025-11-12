@@ -4,6 +4,7 @@ from typing import Dict, List
 from dataclasses import dataclass
 import json
 from pathlib import Path
+import os
 
 import numpy as np
 import pandas as pd
@@ -28,6 +29,15 @@ import shap
 
 st.set_page_config(page_title="Stress Risk Assessment", layout="wide")
 
+def resolve_admin_key() -> str:
+    """Read ADMIN_KEY from Streamlit secrets if available, otherwise fall back to env var."""
+    try:
+        return st.secrets["ADMIN_KEY"]
+    except Exception:
+        return os.environ.get("ADMIN_KEY", "")
+
+ADMIN_KEY = resolve_admin_key()
+
 # ----------------------------
 # Session state initialization
 # ----------------------------
@@ -37,13 +47,58 @@ if "user_id" not in st.session_state:
     st.session_state["user_id"] = ""
 if "interaction_log" not in st.session_state:
     st.session_state["interaction_log"] = []
+if "admin_mode" not in st.session_state:
+    st.session_state["admin_mode"] = False
+if "view_mode" not in st.session_state:
+    st.session_state["view_mode"] = "participant"
 
 # ----------------------------
 # Study mode selection
 # ----------------------------
 st.title("🧠 Stress Risk Assessment System")
 
-if st.session_state["study_mode"] is None:
+if not st.session_state["admin_mode"]:
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] {display: none;}
+        [data-testid="collapsedControl"] {display: none;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+with st.expander("🔐 Researcher console", expanded=False):
+    if st.session_state["admin_mode"]:
+        st.success("Researcher controls unlocked.")
+        view_choice = st.radio(
+            "Choose view",
+            options=["participant", "admin"],
+            index=0 if st.session_state["view_mode"] == "participant" else 1,
+            format_func=lambda x: "Participant experience" if x == "participant" else "Research dashboard",
+            horizontal=True,
+        )
+        if view_choice != st.session_state["view_mode"]:
+            st.session_state["view_mode"] = view_choice
+            st.rerun()
+        if st.button("Lock console"):
+            st.session_state["admin_mode"] = False
+            st.session_state["view_mode"] = "participant"
+            st.rerun()
+    else:
+        if not ADMIN_KEY:
+            st.caption("Set ADMIN_KEY in Streamlit secrets or the environment to require a passphrase.")
+        admin_key = st.text_input("Enter admin key", type="password")
+        if st.button("Unlock console"):
+            if not ADMIN_KEY or admin_key == ADMIN_KEY:
+                st.session_state["admin_mode"] = True
+                st.session_state["view_mode"] = "admin"
+                st.success("Admin mode enabled. Sidebar and analytics will appear.")
+                st.rerun()
+            else:
+                st.error("Incorrect key. Please try again.")
+
+if st.session_state["view_mode"] == "participant" and st.session_state["study_mode"] is None:
     st.markdown("""
     ### Welcome to the Stress Risk Assessment Study
     
@@ -67,7 +122,7 @@ if st.session_state["study_mode"] is None:
     st.stop()
 
 # User ID input
-if not st.session_state["user_id"]:
+if st.session_state["view_mode"] == "participant" and not st.session_state["user_id"]:
     st.markdown("### Participant Information")
     user_id = st.text_input("Enter your participant ID:", key="uid_input")
     if st.button("Continue"):
@@ -85,9 +140,13 @@ if not st.session_state["user_id"]:
     st.stop()
 
 # Display current mode
-mode_label = "Basic Assessment" if st.session_state["study_mode"] == "G1" else "Enhanced Assessment"
-st.sidebar.success(f"Mode: {mode_label}")
-st.sidebar.caption(f"Participant: {st.session_state['user_id']}")
+if st.session_state["view_mode"] == "participant":
+    mode_label = "Basic Assessment" if st.session_state["study_mode"] == "G1" else "Enhanced Assessment"
+    if st.session_state["admin_mode"]:
+        st.sidebar.success(f"Mode: {mode_label}")
+        st.sidebar.caption(f"Participant: {st.session_state['user_id'] or '—'}")
+    else:
+        st.caption(f"**Mode:** {mode_label} | **Participant ID:** {st.session_state['user_id'] or '—'}")
 
 # ----------------------------
 # Safety helpers
@@ -409,6 +468,135 @@ def display_stress_plan(plan: Dict):
         use_container_width=True
     )
 
+def interpret_confidence(lower: float, upper: float) -> Dict[str, str]:
+    """Convert numeric interval into plain-language cues."""
+    width = upper - lower
+    if width <= 0.10:
+        level = "High confidence"
+        explainer = (
+            "We repeatedly land within a narrow ±5 percentage point band for people like you."
+        )
+    elif width <= 0.20:
+        level = "Moderate confidence"
+        explainer = (
+            "Your score usually sits inside a medium-sized band; daily habits can swing it a bit."
+        )
+    else:
+        level = "Needs more information"
+        explainer = (
+            "We do not see enough consistent data for similar profiles, so we show a wide safety band."
+        )
+    return {"level": level, "explanation": explainer, "width": width}
+
+def explain_uncertainty_sources(aleatoric: float, epistemic: float) -> str:
+    """Explain where uncertainty comes from without jargon."""
+    if aleatoric >= epistemic + 0.02:
+        return (
+            "Most of the wiggle room comes from day-to-day lifestyle swings (sleep, breaks, caffeine)."
+        )
+    if epistemic >= aleatoric + 0.02:
+        return (
+            "The model has seen fewer people with a similar pattern, so it keeps a wider safety margin."
+        )
+    return (
+        "Both everyday fluctuations and limited look-alike data contribute equally to this range."
+    )
+
+FEATURE_LABELS = {
+    "work_hours_per_week": "Weekly work hours",
+    "job_satisfaction": "Job satisfaction",
+    "workload_rating": "Workload rating",
+    "sleep_duration_hr": "Sleep duration",
+    "sleep_quality_rating": "Sleep quality",
+    "stress_event_count_last_week": "Stress events last week",
+    "breaks_per_workday": "Breaks per workday",
+    "coffee_intake_cups": "Coffee intake",
+    "alcohol_intake_per_week": "Weekly alcohol intake",
+    "physical_activity_frequency": "Weekly exercise",
+    "screen_time_hr": "Daily screen time",
+    "social_interactions_count": "Weekly social interactions",
+    "commute_time_min": "Commute time",
+    "outdoor_time_hr": "Outdoor time",
+    "screen_unlocks_per_day": "Phone unlocks per day",
+}
+
+FEATURE_UNITS = {
+    "work_hours_per_week": "hrs/week",
+    "sleep_duration_hr": "hrs/night",
+    "sleep_quality_rating": "/10",
+    "job_satisfaction": "/10",
+    "workload_rating": "/10",
+    "stress_event_count_last_week": "events",
+    "breaks_per_workday": "breaks/day",
+    "coffee_intake_cups": "cups/day",
+    "alcohol_intake_per_week": "drinks/week",
+    "physical_activity_frequency": "sessions/week",
+    "screen_time_hr": "hrs/day",
+    "social_interactions_count": "per week",
+    "commute_time_min": "min/day",
+    "outdoor_time_hr": "hrs/day",
+    "screen_unlocks_per_day": "per day",
+}
+
+def friendly_feature_name(feature: str) -> str:
+    return FEATURE_LABELS.get(feature, feature.replace("_", " ").title())
+
+def compute_coverage_signal(width: float, ood_flag: bool) -> Dict[str, str]:
+    """Summarize how well the model has seen similar people."""
+    if ood_flag:
+        return {
+            "label": "Low coverage",
+            "message": "Your answers look uncommon in our training data, so treat this result with extra care.",
+            "tone": "warning",
+        }
+    if width <= 0.12:
+        return {
+            "label": "High coverage",
+            "message": "We have plenty of participants similar to you, so the estimate is well supported.",
+            "tone": "success",
+        }
+    if width <= 0.20:
+        return {
+            "label": "Moderate coverage",
+            "message": "We have some comparable participants, but lifestyle swings can still move the score.",
+            "tone": "info",
+        }
+    return {
+        "label": "Limited coverage",
+        "message": "Only a few people in the data look similar, so the model adds a wide safety band.",
+        "tone": "warning",
+    }
+
+def describe_driver(feature: str, impact: float, user_data: Dict, ranges: Dict[str, List[float]]) -> str:
+    """Return a plain-language explanation for a driver contribution."""
+    name = friendly_feature_name(feature)
+    direction = "raises" if impact > 0 else "reduces"
+    value = user_data.get(feature, "N/A")
+    if isinstance(value, (int, float)):
+        lo, hi = ranges.get(feature, (None, None))
+        qualifier = ""
+        if lo is not None and hi is not None:
+            midpoint = (lo + hi) / 2
+            if value >= hi:
+                qualifier = "- that is among the highest values we usually see"
+            elif value <= lo:
+                qualifier = "- that is among the lowest values we usually see"
+            elif value >= midpoint:
+                qualifier = "- higher than most participants"
+            else:
+                qualifier = "- lower than most participants"
+        unit = FEATURE_UNITS.get(feature, "")
+        formatted_value = f"{value:.1f}".rstrip("0").rstrip(".")
+        if unit:
+            formatted_value = f"{formatted_value} {unit}"
+        return f"{name} {direction} your risk because you reported {formatted_value} {qualifier}".strip()
+    return f"{name} {direction} your risk because you reported '{value}'."
+
+def format_display_value(value) -> str:
+    """Format numeric or categorical values for UI labels."""
+    if isinstance(value, float):
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    return str(value)
 def save_interaction_log():
     """Save interaction log to JSON file."""
     log_dir = Path("study_logs")
@@ -420,13 +608,19 @@ def save_interaction_log():
     with open(log_dir / filename, 'w') as f:
         json.dump(st.session_state["interaction_log"], f, indent=2)
     
-    st.sidebar.success(f"✅ Session data saved")
+    message = "✅ Session data saved"
+    if st.session_state.get("admin_mode"):
+        st.sidebar.success(message)
+    else:
+        st.success(message)
 
 # ----------------------------
 # Data loading
 # ----------------------------
-st.sidebar.header("📊 Data Management")
-uploaded = st.sidebar.file_uploader("Upload stress risk dataset (CSV)", type=["csv"])
+uploaded = None
+if st.session_state["admin_mode"]:
+    st.sidebar.header("📊 Data Management")
+    uploaded = st.sidebar.file_uploader("Upload stress risk dataset (CSV)", type=["csv"])
 
 @st.cache_data(show_spinner=True)
 def load_default_sample() -> pd.DataFrame | None:
@@ -440,10 +634,11 @@ def load_default_sample() -> pd.DataFrame | None:
 
 if uploaded:
     df = pd.read_csv(uploaded)
-    st.sidebar.success("✅ Dataset loaded from upload.")
+    if st.session_state["admin_mode"]:
+        st.sidebar.success("✅ Dataset loaded from upload.")
 else:
     df = load_default_sample()
-    if df is not None:
+    if df is not None and st.session_state["admin_mode"]:
         st.sidebar.info("Using stress risk dataset.")
 
 if df is None:
@@ -479,6 +674,41 @@ for c in NUM_COLS:
 if TARGET_COL in df.columns:
     df[TARGET_COL] = pd.to_numeric(df[TARGET_COL], errors="coerce")
     df["target_binary"] = (df[TARGET_COL] > df[TARGET_COL].median()).astype(int)
+
+if st.session_state["admin_mode"]:
+    st.sidebar.header("🔬 Study Analytics")
+    st.sidebar.metric("Rows in dataset", f"{len(df):,}")
+    st.sidebar.metric("Features in play", len([c for c in NUM_COLS + CAT_COLS if c in df.columns]))
+    if "target_binary" in df.columns:
+        high_share = df["target_binary"].mean() * 100
+        st.sidebar.metric("High-risk share", f"{high_share:.1f}%")
+    dataset_csv = df.to_csv(index=False).encode("utf-8")
+    st.sidebar.download_button(
+        "⬇️ Download dataset snapshot",
+        dataset_csv,
+        file_name="stress_risk_dataset.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
+    if st.session_state["interaction_log"]:
+        log_df = pd.json_normalize(st.session_state["interaction_log"])
+        summary = (
+            log_df.query("event == 'prediction_requested'")
+            .groupby("group")["event"]
+            .count()
+            .rename("predictions")
+        )
+        if not summary.empty:
+            st.sidebar.caption("Predictions collected by group:")
+            st.sidebar.dataframe(summary, height=150)
+        logs_csv = log_df.to_csv(index=False).encode("utf-8")
+        st.sidebar.download_button(
+            "⬇️ Download session log",
+            logs_csv,
+            file_name="interaction_log.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
 
 # ----------------------------
 # Model training
@@ -603,7 +833,101 @@ def train_all(df: pd.DataFrame) -> Artifacts:
 with st.spinner("🔄 Training model..."):
     arts = train_all(df)
 
-st.sidebar.success("✅ Model trained successfully")
+if st.session_state["admin_mode"]:
+    st.sidebar.success("✅ Model trained successfully")
+else:
+    st.caption("✅ Model ready for this session")
+
+def render_admin_dashboard(df: pd.DataFrame, arts: Artifacts):
+    """Dedicated admin-only dashboard."""
+    st.title("🧪 Research Dashboard")
+    st.caption("Unlocked researcher view. Use the console above to return to the participant experience.")
+    
+    total_rows = len(df)
+    num_numeric = len([c for c in NUM_COLS if c in df.columns])
+    num_cats = len([c for c in CAT_COLS if c in df.columns])
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Rows in dataset", f"{total_rows:,}")
+    col2.metric("Numeric features", num_numeric)
+    col3.metric("Categorical features", num_cats)
+    
+    st.markdown("### 📊 Outcome Distribution")
+    if "stress_risk_score" in df.columns:
+        fig_target = px.histogram(
+            df,
+            x="stress_risk_score",
+            nbins=30,
+            title="Stress risk score distribution",
+            color_discrete_sequence=["#1f77b4"],
+        )
+    elif "target_binary" in df.columns:
+        fig_target = px.histogram(
+            df,
+            x="target_binary",
+            title="Binary risk distribution",
+            color_discrete_sequence=["#1f77b4"],
+        )
+    else:
+        fig_target = None
+    if fig_target is not None:
+        fig_target.update_layout(height=300, bargap=0.05)
+        st.plotly_chart(fig_target, use_container_width=True)
+    else:
+        st.info("No stress_risk_score column available to visualize.")
+    
+    st.markdown("### 🧠 Model Feature Importance (avg. LightGBM gain)")
+    try:
+        importances = np.mean([m.booster_.feature_importance(importance_type="gain") for m in arts.models], axis=0)
+    except Exception:
+        importances = np.mean([m.feature_importances_ for m in arts.models], axis=0)
+    imp_df = (
+        pd.DataFrame({"Feature": arts.feature_cols, "Importance": importances})
+        .sort_values("Importance", ascending=False)
+        .head(15)
+    )
+    fig_imp = px.bar(imp_df, x="Importance", y="Feature", orientation="h", color="Importance", color_continuous_scale="Blues")
+    fig_imp.update_layout(height=400, yaxis=dict(autorange="reversed"))
+    st.plotly_chart(fig_imp, use_container_width=True)
+    
+    st.markdown("### 🧾 Recent Participant Activity")
+    logs = st.session_state.get("interaction_log", [])
+    if logs:
+        log_df = pd.json_normalize(logs)
+        st.dataframe(log_df.tail(200), use_container_width=True, height=260)
+        cohort_counts = (
+            log_df.query("event == 'prediction_requested'")
+            .groupby("group")
+            .size()
+            .reset_index(name="predictions")
+        )
+        if not cohort_counts.empty:
+            st.markdown("#### Predictions collected per study group")
+            st.dataframe(cohort_counts, use_container_width=True, height=140)
+        logs_csv = log_df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "⬇️ Download interaction log (CSV)",
+            logs_csv,
+            file_name="interaction_log.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    else:
+        st.info("No participant interactions recorded yet in this session.")
+    
+    st.markdown("### 📥 Data Snapshot")
+    st.dataframe(df.head(20), use_container_width=True)
+    dataset_csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        "⬇️ Download dataset snapshot (CSV)",
+        dataset_csv,
+        file_name="stress_risk_dataset.csv",
+        mime="text/csv",
+        use_container_width=True,
+    )
+
+if st.session_state["admin_mode"] and st.session_state["view_mode"] == "admin":
+    render_admin_dashboard(df, arts)
+    st.stop()
 
 # ----------------------------
 # Inference
@@ -812,6 +1136,8 @@ if "current_prediction" in st.session_state:
             
             lo = pred["uncertainty"]["lower"]
             hi = pred["uncertainty"]["upper"]
+            confidence = interpret_confidence(lo, hi)
+            coverage = compute_coverage_signal(hi - lo, pred["ood_flag"])
             
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number",
@@ -830,12 +1156,92 @@ if "current_prediction" in st.session_state:
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
             
+            st.markdown("#### How to read this")
+            st.markdown(f"**Confidence level:** {confidence['level']}")
+            st.write(confidence["explanation"])
+            st.caption(
+                f"In everyday terms: out of 100 similar people, about 90 are expected to land between "
+                f"{lo*100:.0f}% and {hi*100:.0f}% stress risk."
+            )
+            aleatoric_std = pred["uncertainty"].get("aleatoric_std", 0.0)
+            epistemic_std = pred["uncertainty"].get("epistemic_std", 0.0)
+            st.markdown("#### Why do we show a range?")
+            st.markdown(
+                f"{explain_uncertainty_sources(aleatoric_std, epistemic_std)}"
+            )
+            
+            st.markdown("#### Two Types of Uncertainty")
+            total_unc = aleatoric_std + epistemic_std
+            if total_unc <= 1e-4:
+                st.info(
+                    "Both natural variation and AI knowledge gaps are essentially zero right now, so the model is very "
+                    "confident and the bar chart would be empty. If the range widens later, the bars will show which "
+                    "source is responsible."
+                )
+            else:
+                fig_unc = go.Figure(data=[
+                    go.Bar(
+                        name="Natural variation",
+                        y=["Sources"],
+                        x=[aleatoric_std * 100],
+                        orientation="h",
+                        marker_color="#58c4dd",
+                        text=f"{aleatoric_std * 100:.1f}%",
+                        textposition="inside"
+                    ),
+                    go.Bar(
+                        name="AI knowledge gaps",
+                        y=["Sources"],
+                        x=[epistemic_std * 100],
+                        orientation="h",
+                        marker_color="#ffa07a",
+                        text=f"{epistemic_std * 100:.1f}%",
+                        textposition="inside"
+                    ),
+                ])
+                fig_unc.update_layout(
+                    barmode="stack",
+                    height=220,
+                    xaxis_title="Share of total uncertainty (%)",
+                    yaxis=dict(showticklabels=False),
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    template="plotly_white",
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
+                )
+                st.plotly_chart(fig_unc, use_container_width=True)
+                st.caption(
+                    "Longer bars mean that source takes up more of the uncertainty band around your score."
+                )
+            with st.expander("💡 What do these mean?", expanded=False):
+                st.markdown("""
+                **🌊 Natural variation** (aleatoric uncertainty)  
+                • Stress naturally swings from day to day, just like your heart rate or weight  
+                • The model always keeps this buffer because no one has perfectly steady habits  
+                • This part cannot be eliminated- it is the noise of daily life  
+
+                **🧩 AI knowledge gaps** (epistemic uncertainty)  
+                • The AI has seen fewer people with your exact pattern, so it hedges its bets  
+                • Think of a new doctor versus a specialist-experience narrows this portion  
+                • Collecting more similar data points would shrink this slice
+                """)
+            
             st.markdown("#### Uncertainty Metrics")
             unc_width = hi - lo
             c1, c2, c3 = st.columns(3)
             c1.metric("Lower Bound", f"{lo*100:.1f}%")
             c2.metric("Upper Bound", f"{hi*100:.1f}%")
             c3.metric("Range", f"±{unc_width*50:.1f}%")
+            st.caption(
+                "Lower bound: the most cautious estimate. Upper bound: the highest likely score. "
+                "Range: how much padding we keep on each side of the best estimate."
+            )
+            
+            if coverage["tone"] == "success":
+                st.success(f"{coverage['label']}: {coverage['message']}")
+            elif coverage["tone"] == "warning":
+                st.warning(f"{coverage['label']}: {coverage['message']}")
+            else:
+                st.info(f"{coverage['label']}: {coverage['message']}")
         
         with col2:
             st.markdown("### Key Stress Drivers")
@@ -854,6 +1260,92 @@ if "current_prediction" in st.session_state:
             )
             fig_shap.update_layout(height=350, yaxis={'categoryorder':'total ascending'})
             st.plotly_chart(fig_shap, use_container_width=True)
+            
+            st.markdown("#### Plain-English Reason Codes")
+            for feat, impact in drivers:
+                arrow = "⚠️" if impact > 0 else "✅"
+                st.write(
+                    f"{arrow} **{friendly_feature_name(feat)}** ({impact:+.2f}) - "
+                    f"{describe_driver(feat, impact, st.session_state['current_user'], arts.ranges)}."
+                )
+        
+        st.markdown("### 🔁 What-if Sandbox")
+        with st.expander("Try small changes and see how risk shifts:", expanded=False):
+            baseline_user = st.session_state.get("current_user")
+            if not baseline_user:
+                st.caption("Submit the form above to unlock scenario testing.")
+            else:
+                adjustable = []
+                for feat, _ in pred["drivers"]:
+                    if feat in arts.feature_cols and feat not in adjustable:
+                        adjustable.append(feat)
+                if not adjustable:
+                    st.caption("No adjustable factors available from the current explanation.")
+                else:
+                    feature_choice = st.selectbox(
+                        "Pick a factor to tweak",
+                        adjustable,
+                        format_func=friendly_feature_name,
+                        key="what_if_feature"
+                    )
+                    new_value = baseline_user.get(feature_choice)
+                    control_key = f"what_if_value_{feature_choice}"
+                    if feature_choice in NUM_COLS:
+                        lo, hi = arts.ranges.get(feature_choice, (None, None))
+                        if lo is None or hi is None:
+                            current_val = float(baseline_user.get(feature_choice, 0))
+                            lo = current_val - 5
+                            hi = current_val + 5
+                        if lo == hi:
+                            hi = lo + 1.0
+                        raw_val = baseline_user.get(feature_choice)
+                        if raw_val is None:
+                            base_val = (lo + hi) / 2
+                        else:
+                            base_val = float(raw_val)
+                        base_val = min(max(base_val, lo), hi)
+                        is_continuous = abs(base_val - round(base_val)) > 0.01
+                        step = 0.5 if is_continuous else 1.0
+                        new_value = st.slider(
+                            f"Set a new {friendly_feature_name(feature_choice)}",
+                            float(lo),
+                            float(hi),
+                            float(base_val),
+                            step=step,
+                            key=control_key
+                        )
+                    elif feature_choice in CAT_COLS:
+                        choices = arts.cat_categories.get(feature_choice, [])
+                        if not choices:
+                            choices = sorted({str(baseline_user.get(feature_choice, ""))})
+                        current_choice = str(baseline_user.get(feature_choice, choices[0] if choices else ""))
+                        idx = choices.index(current_choice) if current_choice in choices else 0
+                        new_value = st.selectbox(
+                            f"Set a new {friendly_feature_name(feature_choice)}",
+                            choices,
+                            index=idx if choices else 0,
+                            key=control_key
+                        )
+                    run = st.button("Run scenario", key="what_if_run")
+                    if run:
+                        scenario = dict(baseline_user)
+                        scenario[feature_choice] = new_value
+                        scenario_pred = predict_user(scenario)
+                        st.session_state["what_if_result"] = {
+                            "feature": feature_choice,
+                            "value": new_value,
+                            "prediction": scenario_pred,
+                            "baseline": risk
+                        }
+                    if "what_if_result" in st.session_state:
+                        result = st.session_state["what_if_result"]
+                        delta = (result["prediction"]["risk"] - result["baseline"]) * 100
+                        value_display = format_display_value(result["value"])
+                        st.metric(
+                            label=f"New risk if {friendly_feature_name(result['feature'])} = {value_display}",
+                            value=f"{result['prediction']['risk']*100:.1f}%",
+                            delta=f"{delta:+.1f} pts vs now"
+                        )
     
     # Stress management plan
     st.markdown("---")
