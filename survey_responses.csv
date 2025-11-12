@@ -1,5 +1,0 @@
-timestamp,event,user_id,group,user_data,prediction,trust_score,follow_likelihood,usefulness,comments
-2025-11-12T12:26:07.941421,survey_completed,1,G1,,,2.0,2.0,2.0,
-2025-11-12T10:14:20.578353,survey_completed,2,G2,,,3.0,3.0,3.0,
-2025-11-12T12:30:19.212447,survey_completed,4,G2,,,4.0,5.0,4.0,
-2025-11-12T12:31:22.990853,survey_completed,3,G1,,,2.0,3.0,1.0,
