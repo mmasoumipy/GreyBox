@@ -91,6 +91,25 @@ Open your browser to: `http://127.0.0.1:5000/`
 - Survey is on a separate page.
 - Participants auto-assign and auto-advance (odd → G1, even → G2) after survey submission.
 
+## 🚄 Deploy to Railway
+
+This repo includes a `Procfile` and `railway.json` to run the Flask app with Gunicorn.
+
+### Steps
+
+1. Push this repo to GitHub.
+2. In Railway: **New Project → Deploy from GitHub** and select the repo.
+3. Set environment variables:
+   - `DATABASE_URL` (optional, enables Postgres logging)
+   - `ADMIN_KEY` (optional, enables research console)
+4. Deploy. Railway provides `PORT` automatically.
+
+### Notes
+
+- Make sure `artifacts/` and `data/stress_risk_data.csv` are present in the repo or otherwise available at runtime.
+- If you prefer to train during build, add a Railway build command like `python train.py` (only if you are ok with training on each build).
+- For Railway Postgres, set `DATABASE_URL` to the internal hostname (e.g. `postgres.railway.internal:5432`) and reserve the public URL for external tooling.
+
 ## 📊 Project Structure
 
 ```
