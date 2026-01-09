@@ -144,8 +144,8 @@ def train_all(df: pd.DataFrame) -> Artifacts:
     calibrators: List[CalibratedClassifierCV] = []
     p_val_stack = []
     for m in models:
-        cal = CalibratedClassifierCV(m, method="isotonic", cv="prefit")
-        cal.fit(X_val, y_val)
+        cal = CalibratedClassifierCV(m, method="isotonic", cv=5)
+        cal.fit(X_tr, y_tr)
         calibrators.append(cal)
         p_val_stack.append(prob_of_one(cal, X_val))
 

@@ -108,7 +108,6 @@ This repo includes a `Procfile` and `railway.json` to run the Flask app with Gun
 
 - Make sure `artifacts/` and `data/stress_risk_data.csv` are present in the repo or otherwise available at runtime.
 - If you prefer to train during build, add a Railway build command like `python train.py` (only if you are ok with training on each build).
-- For Railway Postgres, set `DATABASE_URL` to the internal hostname (e.g. `postgres.railway.internal:5432`) and reserve the public URL for external tooling.
 
 ## 📊 Project Structure
 
