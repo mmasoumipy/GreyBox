@@ -1,0 +1,165 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <h2 style="margin-top:0;">Survey</h2>
+  <p class="text-muted">Please answer after reviewing your results and plan. Your feedback helps us improve. Scale: 1 = strongly disagree, 5 = strongly agree unless noted.</p>
+  <form method="post">
+    
+    <div class="section-title">Demographics & Background</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="q_demo_age">Age</label>
+        <input type="number" name="q_demo_age" id="q_demo_age" min="18" max="90" value="{{ demographics.get('age', 30) }}">
+      </div>
+      <div class="form-group">
+        <label for="q_demo_gender">Gender</label>
+        <input type="text" name="q_demo_gender" id="q_demo_gender" value="{{ demographics.get('gender','') }}">
+      </div>
+      <div class="form-group">
+        <label for="q_demo_occupation">Occupation</label>
+        <input type="text" name="q_demo_occupation" id="q_demo_occupation" value="{{ demographics.get('occupation','') }}">
+      </div>
+      <div class="form-group">
+        <label for="q_demo_education">Highest education level</label>
+        <select name="q_demo_education" id="q_demo_education">
+          {% for opt in ["High school","Associate degree","Bachelor's degree","Master's degree","Doctorate","Other"] %}
+            <option value="{{ opt }}">{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Do you work in tech, data, or healthcare?</label>
+        <select name="q_demo_work_in_tech">
+          <option value="No">No</option>
+          <option value="Yes">Yes</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Health & Stress Context</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="q_health_stress_level">Self-rated current stress/mental health level (1 = very low, 5 = very high)</label>
+        <select name="q_health_stress_level" id="q_health_stress_level">
+          {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Prior use of stress-assessment or mental-health tools</label>
+        <select name="q_health_prior_tool_use">
+          <option value="No">No</option>
+          <option value="Yes">Yes</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">AI Literacy & Attitudes</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="q_ai_knowledge">Self-rated AI knowledge (1 = none, 5 = advanced)</label>
+        <select name="q_ai_knowledge" id="q_ai_knowledge">
+          {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="q_ai_tool_frequency">Frequency of AI tool use</label>
+        <select name="q_ai_tool_frequency" id="q_ai_tool_frequency">
+          {% for opt in ["Never","Occasionally","Weekly","Daily"] %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">GAAIS - Short Version</div>
+    <div class="q-grid">
+      {% for key, label in likert_gaais %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <select name="{{ key }}">
+            {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Health App Experience</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="q_health_app_frequency">Frequency of health app or wearable use</label>
+        <select name="q_health_app_frequency" id="q_health_app_frequency">
+          {% for opt in ["Never","Monthly","Weekly","Daily"] %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Core Survey Items</div>
+    <div class="q-grid">
+      {% for key, label in likert_core %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <select name="{{ key }}">
+            {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+          </select>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Behavioral Measures</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="q_attention_check_feature">Attention Check: Which feature increased your risk the most?</label>
+        <select name="q_attention_check_feature" id="q_attention_check_feature">
+          {% for opt in driver_options %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="q_system_preference">Which version of the system do you prefer: Basic or Advanced?</label>
+        <select name="q_system_preference" id="q_system_preference">
+          <option value="Basic">Basic</option>
+          <option value="Advanced">Advanced</option>
+          <option value="No preference">No preference</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Open-Ended Questions</div>
+    <div style="display: grid; gap: 20px;">
+      <div class="form-group">
+        <label for="q_open_most_useful">What part of the assessment was most useful?</label>
+        <textarea name="q_open_most_useful" id="q_open_most_useful" rows="4" style="min-height: 100px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="q_open_unclear">What part was unclear?</label>
+        <textarea name="q_open_unclear" id="q_open_unclear" rows="4" style="min-height: 100px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="q_open_suggestions">Do you have suggestions for improvement?</label>
+        <textarea name="q_open_suggestions" id="q_open_suggestions" rows="4" style="min-height: 100px;"></textarea>
+      </div>
+    </div>
+
+    {% if likert_g2 %}
+      <div class="section-title" style="margin-top: 24px;">Group 2 Only – Uncertainty & Explanations</div>
+      <div class="q-grid">
+        {% for key, label in likert_g2 %}
+          <div class="form-group">
+            <label>{{ label }}</label>
+            <select name="{{ key }}">
+              {% for i in range(1,6) %}<option value="{{ i }}">{{ i }}</option>{% endfor %}
+            </select>
+          </div>
+        {% endfor %}
+      </div>
+      <div style="display: grid; gap: 20px; grid-template-columns: 1fr;">
+        <div class="form-group">
+          <label for="q_open_uncertainty_impact">Did the uncertainty or explanations change how you interpreted the results?</label>
+          <textarea name="q_open_uncertainty_impact" id="q_open_uncertainty_impact" rows="4" style="min-height: 100px;"></textarea>
+        </div>
+      </div>
+    {% endif %}
+
+    <div style="margin-top: 28px;">
+      <button type="submit">✓ Submit Feedback</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

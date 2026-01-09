@@ -11,3 +11,5 @@ streamlit
 plotly
 matplotlib
 seaborn
+flask
+psycopg2-binary
