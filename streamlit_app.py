@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import os
 import re
+from contextlib import contextmanager
 
 import numpy as np
 import pandas as pd
@@ -34,6 +35,48 @@ except Exception:
     study_analysis = None
 
 st.set_page_config(page_title="Stress Risk Assessment", layout="wide")
+
+st.markdown(
+    """
+    <style>
+    .result-card {
+        background: rgba(31, 119, 180, 0.06);
+        border: 1px solid rgba(31, 119, 180, 0.2);
+        border-radius: 18px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 18px 35px rgba(15, 23, 42, 0.08);
+    }
+    .result-card__tag {
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.72rem;
+        color: #1f77b4;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+    }
+    .result-card h3, .result-card h4 {
+        margin-top: 0.2rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+@contextmanager
+def result_card(title: str | None = None, tag: str | None = None):
+    outer = st.container()
+    outer.markdown('<div class="result-card">', unsafe_allow_html=True)
+    inner = outer.container()
+    if tag:
+        inner.markdown(f"<p class='result-card__tag'>{tag}</p>", unsafe_allow_html=True)
+    if title:
+        inner.markdown(f"### {title}")
+    try:
+        yield inner
+    finally:
+        outer.markdown("</div>", unsafe_allow_html=True)
 
 def resolve_admin_key() -> str:
     """Read ADMIN_KEY from Streamlit secrets if available, otherwise fall back to env var."""
@@ -194,20 +237,20 @@ with st.expander("🔐 Researcher console", expanded=False):
                 st.error("Incorrect key. Please try again.")
 
 # Display current mode
-if st.session_state["view_mode"] == "participant":
-    mode_label = "Basic Assessment" if st.session_state["study_mode"] == "G1" else "Enhanced Assessment"
-    if st.session_state["admin_mode"]:
-        st.sidebar.success(f"Mode: {mode_label}")
-        st.sidebar.caption(f"Participant: {st.session_state['user_id'] or '—'}")
-    else:
-        participant_label = st.session_state["user_id"] or "—"
-        st.caption(f"**Mode:** {mode_label} | **Participant ID:** {participant_label}")
-        if st.session_state["user_id"]:
-            st.info(
-                f"You are Participant #{participant_label}. "
-                f"All odd numbers join Group 1, even numbers join Group 2. "
-                f"Your assignment: **{mode_label}**."
-            )
+# if st.session_state["view_mode"] == "participant":
+#     mode_label = "Basic Assessment" if st.session_state["study_mode"] == "G1" else "Enhanced Assessment"
+#     if st.session_state["admin_mode"]:
+#         st.sidebar.success(f"Mode: {mode_label}")
+#         st.sidebar.caption(f"Participant: {st.session_state['user_id'] or '—'}")
+#     else:
+#         participant_label = st.session_state["user_id"] or "—"
+#         st.caption(f"**Mode:** {mode_label} | **Participant ID:** {participant_label}")
+#         if st.session_state["user_id"]:
+#             st.info(
+#                 f"You are Participant #{participant_label}. "
+#                 f"All odd numbers join Group 1, even numbers join Group 2. "
+#                 f"Your assignment: **{mode_label}**."
+#             )
 
 # ----------------------------
 # Safety helpers
@@ -1303,44 +1346,7 @@ if "current_prediction" in st.session_state:
     
     # G1: Basic display
     if st.session_state["study_mode"] == "G1":
-        st.markdown("### Your Stress Risk Score")
-        
-        fig = go.Figure(go.Indicator(
-            mode = "gauge+number",
-            value = risk * 100,
-            title = {'text': "Stress Risk Level (%)"},
-            gauge = {
-                'axis': {'range': [None, 100]},
-                'bar': {'color': "darkblue"},
-                'steps': [
-                    {'range': [0, 33], 'color': "lightgreen"},
-                    {'range': [33, 66], 'color': "yellow"},
-                    {'range': [66, 100], 'color': "salmon"}
-                ]
-            }
-        ))
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
-        
-        if risk < 0.33:
-            st.success("✅ Low Stress Risk")
-        elif risk < 0.66:
-            st.warning("⚠️ Moderate Stress Risk")
-        else:
-            st.error("🚨 High Stress Risk")
-    
-    # G2: Enhanced display
-    else:
-        col1, col2 = st.columns([1, 1])
-        
-        with col1:
-            st.markdown("### Stress Risk with Uncertainty")
-            
-            lo = pred["uncertainty"]["lower"]
-            hi = pred["uncertainty"]["upper"]
-            confidence = interpret_confidence(lo, hi)
-            coverage = compute_coverage_signal(hi - lo, pred["ood_flag"])
-            
+        with result_card("Your Stress Risk Score", tag="Assessment Result") as card:
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = risk * 100,
@@ -1356,198 +1362,236 @@ if "current_prediction" in st.session_state:
                 }
             ))
             fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
+            card.plotly_chart(fig, use_container_width=True)
             
-            st.markdown("#### How to read this")
-            st.markdown(f"**Confidence level:** {confidence['level']}")
-            st.write(confidence["explanation"])
-            st.caption(
-                f"In everyday terms: out of 100 similar people, about 90 are expected to land between "
-                f"{lo*100:.0f}% and {hi*100:.0f}% stress risk."
-            )
+            if risk < 0.33:
+                card.success("✅ Low Stress Risk")
+            elif risk < 0.66:
+                card.warning("⚠️ Moderate Stress Risk")
+            else:
+                card.error("🚨 High Stress Risk")
+    
+    # G2: Enhanced display
+    else:
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            lo = pred["uncertainty"]["lower"]
+            hi = pred["uncertainty"]["upper"]
+            confidence = interpret_confidence(lo, hi)
+            coverage = compute_coverage_signal(hi - lo, pred["ood_flag"])
             aleatoric_std = pred["uncertainty"].get("aleatoric_std", 0.0)
             epistemic_std = pred["uncertainty"].get("epistemic_std", 0.0)
-            st.markdown("#### Why do we show a range?")
-            st.markdown(
-                f"{explain_uncertainty_sources(aleatoric_std, epistemic_std)}"
-            )
-            
-            st.markdown("#### Two Types of Uncertainty")
-            total_unc = aleatoric_std + epistemic_std
-            if total_unc <= 1e-4:
-                st.info(
-                    "Both natural variation and AI knowledge gaps are essentially zero right now, so the model is very "
-                    "confident and the bar chart would be empty. If the range widens later, the bars will show which "
-                    "source is responsible."
-                )
-            else:
-                fig_unc = go.Figure(data=[
-                    go.Bar(
-                        name="Natural variation",
-                        y=["Sources"],
-                        x=[aleatoric_std * 100],
-                        orientation="h",
-                        marker_color="#58c4dd",
-                        text=f"{aleatoric_std * 100:.1f}%",
-                        textposition="inside"
-                    ),
-                    go.Bar(
-                        name="AI knowledge gaps",
-                        y=["Sources"],
-                        x=[epistemic_std * 100],
-                        orientation="h",
-                        marker_color="#ffa07a",
-                        text=f"{epistemic_std * 100:.1f}%",
-                        textposition="inside"
-                    ),
-                ])
-                fig_unc.update_layout(
-                    barmode="stack",
-                    height=220,
-                    xaxis_title="Share of total uncertainty (%)",
-                    yaxis=dict(showticklabels=False),
-                    margin=dict(l=10, r=10, t=10, b=10),
-                    template="plotly_white",
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
-                )
-                st.plotly_chart(fig_unc, use_container_width=True)
-                st.caption(
-                    "Longer bars mean that source takes up more of the uncertainty band around your score."
-                )
-            with st.expander("💡 What do these mean?", expanded=False):
-                st.markdown("""
-                **🌊 Natural variation** (aleatoric uncertainty)  
-                • Stress naturally swings from day to day, just like your heart rate or weight  
-                • The model always keeps this buffer because no one has perfectly steady habits  
-                • This part cannot be eliminated- it is the noise of daily life  
 
-                **🧩 AI knowledge gaps** (epistemic uncertainty)  
-                • The AI has seen fewer people with your exact pattern, so it hedges its bets  
-                • Think of a new doctor versus a specialist-experience narrows this portion  
-                • Collecting more similar data points would shrink this slice
-                """)
-            
-            st.markdown("#### Uncertainty Metrics")
-            unc_width = hi - lo
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Lower Bound", f"{lo*100:.1f}%")
-            c2.metric("Upper Bound", f"{hi*100:.1f}%")
-            c3.metric("Range", f"±{unc_width*50:.1f}%")
-            st.caption(
-                "Lower bound: the most cautious estimate. Upper bound: the highest likely score. "
-                "Range: how much padding we keep on each side of the best estimate."
-            )
-            
-            if coverage["tone"] == "success":
-                st.success(f"{coverage['label']}: {coverage['message']}")
-            elif coverage["tone"] == "warning":
-                st.warning(f"{coverage['label']}: {coverage['message']}")
-            else:
-                st.info(f"{coverage['label']}: {coverage['message']}")
+            with result_card("Stress Risk with Uncertainty", tag="Assessment Result") as card:
+                fig = go.Figure(go.Indicator(
+                    mode = "gauge+number",
+                    value = risk * 100,
+                    title = {'text': "Stress Risk Level (%)"},
+                    gauge = {
+                        'axis': {'range': [None, 100]},
+                        'bar': {'color': "darkblue"},
+                        'steps': [
+                            {'range': [0, 33], 'color': "lightgreen"},
+                            {'range': [33, 66], 'color': "yellow"},
+                            {'range': [66, 100], 'color': "salmon"}
+                        ]
+                    }
+                ))
+                fig.update_layout(height=300)
+                card.plotly_chart(fig, use_container_width=True)
+
+            with result_card("Understanding this result", tag="Interpretation") as card:
+                card.markdown("#### How to read this")
+                snapshot_cols = card.columns([1.2, 1, 1])
+                snapshot_cols[0].metric("Confidence level", confidence["level"])
+                snapshot_cols[1].metric("Lower bound", f"{lo*100:.1f}%")
+                snapshot_cols[2].metric("Upper bound", f"{hi*100:.1f}%")
+                card.write(confidence["explanation"])
+                card.info(
+                    f"Out of 100 similar people, about 90 are expected to land between {lo*100:.0f}% and {hi*100:.0f}% stress risk."
+                )
+                card.markdown("#### Why do we show a range?")
+                card.write(explain_uncertainty_sources(aleatoric_std, epistemic_std))
+                
+                card.markdown("#### Two types of uncertainty")
+                total_unc = aleatoric_std + epistemic_std
+                if total_unc <= 1e-4:
+                    card.info(
+                        "Both natural variation and AI knowledge gaps are essentially zero right now, so the model is very "
+                        "confident and the bar chart would be empty. If the range widens later, the bars will show which "
+                        "source is responsible."
+                    )
+                else:
+                    fig_unc = go.Figure(data=[
+                        go.Bar(
+                            name="Natural variation",
+                            y=["Sources"],
+                            x=[aleatoric_std * 100],
+                            orientation="h",
+                            marker_color="#58c4dd",
+                            text=f"{aleatoric_std * 100:.1f}%",
+                            textposition="inside"
+                        ),
+                        go.Bar(
+                            name="AI knowledge gaps",
+                            y=["Sources"],
+                            x=[epistemic_std * 100],
+                            orientation="h",
+                            marker_color="#ffa07a",
+                            text=f"{epistemic_std * 100:.1f}%",
+                            textposition="inside"
+                        ),
+                    ])
+                    fig_unc.update_layout(
+                        barmode="stack",
+                        height=220,
+                        xaxis_title="Share of total uncertainty (%)",
+                        yaxis=dict(showticklabels=False),
+                        margin=dict(l=10, r=10, t=10, b=10),
+                        template="plotly_white",
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
+                    )
+                    card.plotly_chart(fig_unc, use_container_width=True)
+                    card.caption(
+                        "Longer bars mean that source takes up more of the uncertainty band around your score."
+                    )
+                card.markdown("#### What do these mean?")
+                meaning_cols = card.columns(2)
+                meaning_cols[0].markdown(
+                    """
+                    **🌊 Natural variation** (aleatoric)  
+                    • Stress swings from day to day  
+                    • Everyone keeps a buffer because no habits are perfectly steady  
+                    • This portion cannot be eliminated—it is daily-life noise
+                    """
+                )
+                meaning_cols[1].markdown(
+                    """
+                    **🧩 AI knowledge gaps** (epistemic)  
+                    • The AI has seen fewer people with your exact pattern  
+                    • More experience (additional similar data) shrinks this slice  
+                    • Think new doctor vs. specialist—the specialist hedges less
+                    """
+                )
+                
+                card.markdown("#### Uncertainty metrics")
+                unc_width = hi - lo
+                metric_cols = card.columns(3)
+                metric_cols[0].metric("Lower bound", f"{lo*100:.1f}%")
+                metric_cols[1].metric("Upper bound", f"{hi*100:.1f}%")
+                metric_cols[2].metric("Range (±)", f"{unc_width*50:.1f}%")
+                
+                if coverage["tone"] == "success":
+                    card.success(f"{coverage['label']}: {coverage['message']}")
+                elif coverage["tone"] == "warning":
+                    card.warning(f"{coverage['label']}: {coverage['message']}")
+                else:
+                    card.info(f"{coverage['label']}: {coverage['message']}")
         
         with col2:
-            st.markdown("### Key Stress Drivers")
-            st.markdown("Factors with the most impact on your risk score:")
-            
-            drivers = pred["drivers"]
-            driver_df = pd.DataFrame(drivers, columns=["Factor", "Impact"])
-            driver_df["Direction"] = driver_df["Impact"].apply(
-                lambda x: "Increases ↑" if x > 0 else "Decreases ↓"
-            )
-            
-            fig_shap = px.bar(
-                driver_df, y="Factor", x="Impact", orientation='h',
-                color="Direction",
-                color_discrete_map={"Increases ↑": "#ff6b6b", "Decreases ↓": "#51cf66"}
-            )
-            fig_shap.update_layout(height=350, yaxis={'categoryorder':'total ascending'})
-            st.plotly_chart(fig_shap, use_container_width=True)
-            
-            st.markdown("#### Plain-English Reason Codes")
-            for feat, impact in drivers:
-                arrow = "⚠️" if impact > 0 else "✅"
-                st.write(
-                    f"{arrow} **{friendly_feature_name(feat)}** ({impact:+.2f}) - "
-                    f"{describe_driver(feat, impact, st.session_state['current_user'], arts.ranges)}."
+            with result_card("Key Stress Drivers", tag="Insights") as card:
+                card.markdown("Factors with the most impact on your risk score:")
+                
+                drivers = pred["drivers"]
+                driver_df = pd.DataFrame(drivers, columns=["Factor", "Impact"])
+                driver_df["Direction"] = driver_df["Impact"].apply(
+                    lambda x: "Increases ↑" if x > 0 else "Decreases ↓"
                 )
-        
-        st.markdown("### 🔁 What-if Sandbox")
-        with st.expander("Try small changes and see how risk shifts:", expanded=False):
-            baseline_user = st.session_state.get("current_user")
-            if not baseline_user:
-                st.caption("Submit the form above to unlock scenario testing.")
-            else:
-                adjustable = []
-                for feat, _ in pred["drivers"]:
-                    if feat in arts.feature_cols and feat not in adjustable:
-                        adjustable.append(feat)
-                if not adjustable:
-                    st.caption("No adjustable factors available from the current explanation.")
-                else:
-                    feature_choice = st.selectbox(
-                        "Pick a factor to tweak",
-                        adjustable,
-                        format_func=friendly_feature_name,
-                        key="what_if_feature"
+                
+                fig_shap = px.bar(
+                    driver_df, y="Factor", x="Impact", orientation='h',
+                    color="Direction",
+                    color_discrete_map={"Increases ↑": "#ff6b6b", "Decreases ↓": "#51cf66"}
+                )
+                fig_shap.update_layout(height=350, yaxis={'categoryorder':'total ascending'})
+                card.plotly_chart(fig_shap, use_container_width=True)
+                
+                card.markdown("#### Plain-English Reason Codes")
+                for feat, impact in drivers:
+                    arrow = "⚠️" if impact > 0 else "✅"
+                    card.write(
+                        f"{arrow} **{friendly_feature_name(feat)}** ({impact:+.2f}) - "
+                        f"{describe_driver(feat, impact, st.session_state['current_user'], arts.ranges)}."
                     )
-                    new_value = baseline_user.get(feature_choice)
-                    control_key = f"what_if_value_{feature_choice}"
-                    if feature_choice in NUM_COLS:
-                        lo, hi = arts.ranges.get(feature_choice, (None, None))
-                        if lo is None or hi is None:
-                            current_val = float(baseline_user.get(feature_choice, 0))
-                            lo = current_val - 5
-                            hi = current_val + 5
-                        if lo == hi:
-                            hi = lo + 1.0
-                        raw_val = baseline_user.get(feature_choice)
-                        if raw_val is None:
-                            base_val = (lo + hi) / 2
-                        else:
-                            base_val = float(raw_val)
-                        base_val = min(max(base_val, lo), hi)
-                        is_continuous = abs(base_val - round(base_val)) > 0.01
-                        step = 0.5 if is_continuous else 1.0
-                        new_value = st.slider(
-                            f"Set a new {friendly_feature_name(feature_choice)}",
-                            float(lo),
-                            float(hi),
-                            float(base_val),
-                            step=step,
-                            key=control_key
+        
+        with result_card("🔁 What-if Sandbox", tag="Scenario Lab") as card:
+            with card.expander("Try small changes and see how risk shifts:", expanded=False):
+                baseline_user = st.session_state.get("current_user")
+                if not baseline_user:
+                    st.caption("Submit the form above to unlock scenario testing.")
+                else:
+                    adjustable = []
+                    for feat, _ in pred["drivers"]:
+                        if feat in arts.feature_cols and feat not in adjustable:
+                            adjustable.append(feat)
+                    if not adjustable:
+                        st.caption("No adjustable factors available from the current explanation.")
+                    else:
+                        feature_choice = st.selectbox(
+                            "Pick a factor to tweak",
+                            adjustable,
+                            format_func=friendly_feature_name,
+                            key="what_if_feature"
                         )
-                    elif feature_choice in CAT_COLS:
-                        choices = arts.cat_categories.get(feature_choice, [])
-                        if not choices:
-                            choices = sorted({str(baseline_user.get(feature_choice, ""))})
-                        current_choice = str(baseline_user.get(feature_choice, choices[0] if choices else ""))
-                        idx = choices.index(current_choice) if current_choice in choices else 0
-                        new_value = st.selectbox(
-                            f"Set a new {friendly_feature_name(feature_choice)}",
-                            choices,
-                            index=idx if choices else 0,
-                            key=control_key
-                        )
-                    run = st.button("Run scenario", key="what_if_run")
-                    if run:
-                        scenario = dict(baseline_user)
-                        scenario[feature_choice] = new_value
-                        scenario_pred = predict_user(scenario)
-                        st.session_state["what_if_result"] = {
-                            "feature": feature_choice,
-                            "value": new_value,
-                            "prediction": scenario_pred,
-                            "baseline": risk
-                        }
-                    if "what_if_result" in st.session_state:
-                        result = st.session_state["what_if_result"]
-                        delta = (result["prediction"]["risk"] - result["baseline"]) * 100
-                        value_display = format_display_value(result["value"])
-                        st.metric(
-                            label=f"New risk if {friendly_feature_name(result['feature'])} = {value_display}",
-                            value=f"{result['prediction']['risk']*100:.1f}%",
-                            delta=f"{delta:+.1f} pts vs now"
-                        )
+                        new_value = baseline_user.get(feature_choice)
+                        control_key = f"what_if_value_{feature_choice}"
+                        if feature_choice in NUM_COLS:
+                            lo, hi = arts.ranges.get(feature_choice, (None, None))
+                            if lo is None or hi is None:
+                                current_val = float(baseline_user.get(feature_choice, 0))
+                                lo = current_val - 5
+                                hi = current_val + 5
+                            if lo == hi:
+                                hi = lo + 1.0
+                            raw_val = baseline_user.get(feature_choice)
+                            if raw_val is None:
+                                base_val = (lo + hi) / 2
+                            else:
+                                base_val = float(raw_val)
+                            base_val = min(max(base_val, lo), hi)
+                            is_continuous = abs(base_val - round(base_val)) > 0.01
+                            step = 0.5 if is_continuous else 1.0
+                            new_value = st.slider(
+                                f"Set a new {friendly_feature_name(feature_choice)}",
+                                float(lo),
+                                float(hi),
+                                float(base_val),
+                                step=step,
+                                key=control_key
+                            )
+                        elif feature_choice in CAT_COLS:
+                            choices = arts.cat_categories.get(feature_choice, [])
+                            if not choices:
+                                choices = sorted({str(baseline_user.get(feature_choice, ""))})
+                            current_choice = str(baseline_user.get(feature_choice, choices[0] if choices else ""))
+                            idx = choices.index(current_choice) if current_choice in choices else 0
+                            new_value = st.selectbox(
+                                f"Set a new {friendly_feature_name(feature_choice)}",
+                                choices,
+                                index=idx if choices else 0,
+                                key=control_key
+                            )
+                        run = st.button("Run scenario", key="what_if_run")
+                        if run:
+                            scenario = dict(baseline_user)
+                            scenario[feature_choice] = new_value
+                            scenario_pred = predict_user(scenario)
+                            st.session_state["what_if_result"] = {
+                                "feature": feature_choice,
+                                "value": new_value,
+                                "prediction": scenario_pred,
+                                "baseline": risk
+                            }
+                        if "what_if_result" in st.session_state:
+                            result = st.session_state["what_if_result"]
+                            delta = (result["prediction"]["risk"] - result["baseline"]) * 100
+                            value_display = format_display_value(result["value"])
+                            st.metric(
+                                label=f"New risk if {friendly_feature_name(result['feature'])} = {value_display}",
+                                value=f"{result['prediction']['risk']*100:.1f}%",
+                                delta=f"{delta:+.1f} pts vs now"
+                            )
     
     # Stress management plan
     st.markdown("---")
