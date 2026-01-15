@@ -1,0 +1,284 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <h2 style="margin-top:0;">Assessment & Results</h2>
+  <p class="text-muted">Provide your details to get a personalized stress risk score and plan.</p>
+  <form method="post">
+    <div class="section-title">Demographics & Work</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="age">Age</label>
+        <input type="number" name="age" id="age" min="18" max="90" value="{{ defaults.get('age', 30) }}">
+      </div>
+      <div class="form-group">
+        <label for="gender">Gender</label>
+        <select name="gender" id="gender">
+          {% for opt in gender_choices %}
+            <option value="{{ opt }}" {% if defaults.get('gender','') == opt %}selected{% endif %}>{{ opt.title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="occupation">Occupation</label>
+        <select name="occupation" id="occupation">
+          {% for opt in occupation_choices %}
+            <option value="{{ opt }}" {% if defaults.get('occupation','') == opt %}selected{% endif %}>{{ opt.title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Work & Stress Factors</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="work_hours_per_week">Work Hours / Week</label>
+        <input type="number" name="work_hours_per_week" id="work_hours_per_week" min="0" max="80" value="{{ defaults.get('work_hours_per_week', 40) }}">
+      </div>
+      <div class="form-group">
+        <label for="job_satisfaction">Job Satisfaction (1-10)</label>
+        <input type="number" name="job_satisfaction" id="job_satisfaction" min="1" max="10" value="{{ defaults.get('job_satisfaction', 5) }}">
+      </div>
+      <div class="form-group">
+        <label for="workload_rating">Workload Rating (1-10)</label>
+        <input type="number" name="workload_rating" id="workload_rating" min="1" max="10" value="{{ defaults.get('workload_rating', 5) }}">
+      </div>
+      <div class="form-group">
+        <label for="stress_event_count_last_week">Stress Events (Last Week)</label>
+        <input type="number" name="stress_event_count_last_week" id="stress_event_count_last_week" min="0" max="10" value="{{ defaults.get('stress_event_count_last_week', 2) }}">
+      </div>
+      <div class="form-group">
+        <label for="breaks_per_workday">Breaks per Workday</label>
+        <input type="number" name="breaks_per_workday" id="breaks_per_workday" min="0" max="10" value="{{ defaults.get('breaks_per_workday', 3) }}">
+      </div>
+      <div class="form-group">
+        <label for="commute_time_min">Commute Time (min)</label>
+        <input type="number" name="commute_time_min" id="commute_time_min" min="0" max="180" value="{{ defaults.get('commute_time_min', 30) }}">
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Sleep & Health</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="sleep_quality_rating">Sleep Quality (1-10)</label>
+        <input type="number" name="sleep_quality_rating" id="sleep_quality_rating" min="1" max="10" value="{{ defaults.get('sleep_quality_rating', 7) }}">
+      </div>
+      <div class="form-group">
+        <label for="sleep_duration_hr">Sleep Duration (hours)</label>
+        <input type="number" step="0.5" name="sleep_duration_hr" id="sleep_duration_hr" min="3" max="12" value="{{ defaults.get('sleep_duration_hr', 7.0) }}">
+      </div>
+      <div class="form-group">
+        <label for="physical_activity_frequency">Physical Activity (times/week)</label>
+        <input type="number" name="physical_activity_frequency" id="physical_activity_frequency" min="0" max="7" value="{{ defaults.get('physical_activity_frequency', 3) }}">
+      </div>
+      <div class="form-group">
+        <label for="coffee_intake_cups">Coffee (cups/day)</label>
+        <input type="number" step="0.5" name="coffee_intake_cups" id="coffee_intake_cups" min="0" max="10" value="{{ defaults.get('coffee_intake_cups', 2.0) }}">
+      </div>
+      <div class="form-group">
+        <label for="alcohol_intake_per_week">Alcohol (drinks/week)</label>
+        <input type="number" name="alcohol_intake_per_week" id="alcohol_intake_per_week" min="0" max="30" value="{{ defaults.get('alcohol_intake_per_week', 2) }}">
+      </div>
+      <div class="form-group">
+        <label for="screen_time_hr">Screen Time (hr/day)</label>
+        <input type="number" step="0.5" name="screen_time_hr" id="screen_time_hr" min="0" max="16" value="{{ defaults.get('screen_time_hr', 5.0) }}">
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">Lifestyle</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="outdoor_time_hr">Outdoor Time (hr/day)</label>
+        <input type="number" step="0.5" name="outdoor_time_hr" id="outdoor_time_hr" min="0" max="8" value="{{ defaults.get('outdoor_time_hr', 1.0) }}">
+      </div>
+      <div class="form-group">
+        <label for="social_interactions_count">Social Interactions (count/week)</label>
+        <input type="number" name="social_interactions_count" id="social_interactions_count" min="0" max="30" value="{{ defaults.get('social_interactions_count', 8) }}">
+      </div>
+      <div class="form-group">
+        <label for="screen_unlocks_per_day">Screen Unlocks / Day</label>
+        <input type="number" name="screen_unlocks_per_day" id="screen_unlocks_per_day" min="0" max="500" value="{{ defaults.get('screen_unlocks_per_day', 80) }}">
+      </div>
+    </div>
+
+    <div style="margin-top: 28px; display:flex; gap:12px; flex-wrap:wrap;">
+      <button type="submit">🔍 Assess Stress Risk</button>
+      {% if pred %}
+        <a href="#results" style="text-decoration:none;"><button type="button" class="secondary">Jump to Results</button></a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{% if pred %}
+<div class="card" id="results">
+  <h3>Results</h3>
+  <div class="grid results-grid">
+    <div class="card full-span" style="margin:0; height:100%;">
+      <h4>Stress Risk</h4>
+      <div id="gauge" style="height:400px; max-width:520px; width:100%; margin:0 auto;"></div>
+      {% if group == "G1" %}
+        <p class="text-muted">Basic view. Lower is better.</p>
+        {% if risk < 0.33 %}<div class="flash success">✅ Low Stress Risk</div>{% elif risk < 0.66 %}<div class="flash info">ℹ️ Moderate Stress Risk</div>{% else %}<div class="flash error">⚠️ High Stress Risk</div>{% endif %}
+      {% endif %}
+    </div>
+
+    {% if group == "G2" %}
+    <div class="card full-span" style="margin:0; height:100%;">
+      <h4>Uncertainty & Coverage</h4>
+      {% set conf_percent = 100 - (confidence.width * 100 * 2) %}
+      {% if conf_percent < 10 %}{% set conf_percent = 10 %}{% endif %}
+      {% if conf_percent > 90 %}{% set conf_percent = 90 %}{% endif %}
+      <div class="confidence-wrap">
+        <div class="confidence-bar">
+          <div class="confidence-knob" style="left: {{ conf_percent }}%;"></div>
+        </div>
+        <div class="confidence-labels">
+          <span>More confident</span>
+          <span>Less confident</span>
+        </div>
+      </div>
+      <div class="confidence-helper">We tighten the band when predictions stay consistent for similar people. Your current band spans {{ (confidence.width * 100)|round(1) }} percentage points.</div>
+      <div class="subcard" style="margin:14px 0 12px;">
+        <div class="info-row" style="margin-bottom:8px;">
+          <span class="chip">Calibrated</span>
+          <div><strong>Confidence:</strong> {{ confidence.level }}<br><span class="text-muted">{{ confidence.explanation }}</span></div>
+        </div>
+        <div class="info-row">
+          <span class="chip">Coverage</span>
+          <div><strong>{{ coverage.label }}</strong> – {{ coverage.message }}</div>
+        </div>
+      </div>
+      <div id="uncertainty_bar" style="height:260px; margin-bottom:12px;"></div>
+      <div class="info-row">
+        <span class="chip">Uncertainty</span>
+        <div class="text-muted">Aleatoric = randomness in life we cannot reduce. Epistemic = model knowledge gaps that shrink as we see more similar people.</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if group == "G2" %}
+    <div class="card full-span" style="margin:0; height:100%;">
+      <h4>Key Drivers</h4>
+      <div id="drivers_bar" style="height:380px;"></div>
+      <ul>
+        {% for desc in driver_descriptions %}
+          <li>{{ desc }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" id="plan">
+  <h3>Personalized Plan</h3>
+  <form method="post">
+    <input type="hidden" name="action" value="plan">
+    <button type="submit">Generate / Refresh Plan</button>
+  </form>
+  {% if plan %}
+    <h4>Risk Factors</h4>
+    <div style="margin-bottom: 18px;">
+      {% for rf in plan.risk_factors %}
+        <span class="pill">{{ rf.replace("_", " ").title() }}</span>
+      {% endfor %}
+    </div>
+
+    <h4>Weekly Goals</h4>
+    <ul>
+      {% for g in plan.weekly_goals %}
+        <li><strong>{{ g.goal.title() }}</strong> – Target: {{ g.target }}. Tips: {{ ", ".join(g.tips) }}</li>
+      {% endfor %}
+    </ul>
+
+    <h4>Daily Routine</h4>
+    <div class="grid">
+      {% for day, acts in plan.daily_routine.items() %}
+        <div class="card" style="background:#fafbfd; margin-bottom:0;">
+          <strong>{{ day }}</strong>
+          <ul style="margin: 10px 0 0 0;">
+            {% for act in acts %}
+              <li><strong>{{ act.time }}</strong>: {{ act.activity }} ({{ act.duration }})</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Survey Link Button -->
+    <div style="margin-top: 28px; padding-top: 28px; border-top: 1px solid #e8ecf0;">
+      <p class="text-muted" style="margin-bottom: 14px;">💭 Now that you've reviewed your plan, we'd love to hear your thoughts!</p>
+      <a href="{{ url_for('survey') }}" style="text-decoration: none;">
+        <button type="button">📝 Share Your Feedback (Survey)</button>
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  const data = {{ chart_data|tojson }};
+  
+  // Gauge chart
+  Plotly.newPlot('gauge', [{
+    type: "indicator",
+    mode: "gauge+number",
+    value: data.risk_pct,
+    title: { text: "Stress Risk Level (%)" },
+    gauge: {
+      axis: { range: [0, 100] },
+      bar: { color: "#4f46e5" },
+      steps: [
+        {range: [0, 33], color: "#ecfdf5"},
+        {range: [33, 66], color: "#fef3c7"},
+        {range: [66, 100], color: "#fee2e2"}
+      ]
+    }
+  }], {margin:{l:10,r:10,t:20,b:10}, font:{family:"Source Sans Pro"}});
+
+  // Uncertainty breakdown (G2 only)
+  if (data.uncertainty) {
+    Plotly.newPlot('uncertainty_bar', [{
+      type: 'bar',
+      x: [data.uncertainty.aleatoric, data.uncertainty.epistemic],
+      y: ["Uncertainty"],
+      orientation: 'h',
+      marker: {color: ['#a7f3d0', '#fed7aa']},
+      text: [
+        `Natural variation: ${data.uncertainty.aleatoric.toFixed(1)}%`,
+        `AI knowledge gaps: ${data.uncertainty.epistemic.toFixed(1)}%`
+      ],
+      textposition: 'inside',
+      textfont: {size: 12, color: '#fff'}
+    }], {
+      barmode: 'stack',
+      height: 260,
+      margin: {l:10,r:10,t:10,b:30},
+      showlegend: false,
+      xaxis: {title: "Share of uncertainty (%)"},
+      font:{family:"Source Sans Pro"}
+    });
+  }
+
+  // Drivers chart
+  const driversEl = document.getElementById('drivers_bar');
+  if (driversEl) {
+    const drvNames = data.drivers.map(d => d.name);
+    const drvVals = data.drivers.map(d => d.impact);
+    Plotly.newPlot('drivers_bar', [{
+      type: 'bar',
+      x: drvVals,
+      y: drvNames,
+      orientation: 'h',
+      marker: {color: drvVals.map(v => v > 0 ? '#fca5a5' : '#a7f3d0')},
+      text: drvVals.map(v => v.toFixed(2)),
+      textposition: 'auto'
+    }], {
+      height: 380,
+      margin: {l: 120, r: 10, t: 10, b: 20},
+      yaxis: {autorange: 'reversed'},
+      font:{family:"Source Sans Pro"}
+    });
+  }
+</script>
+{% endif %}
+{% endblock %}

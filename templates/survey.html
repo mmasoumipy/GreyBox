@@ -1,0 +1,256 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <h2 style="margin-top:0;">Survey</h2>
+  <p class="text-decoration">Please answer after reviewing your results and plan. Your feedback helps us improve. Scale: 1 = strongly disagree, 5 = strongly agree unless noted.</p>
+  <div class="progress-wrap" aria-label="Survey progress">
+    <div class="progress-track">
+      <div class="progress-fill" style="width: {{ (step / total_steps * 100) | round(0) }}%;"></div>
+    </div>
+    <div class="progress-text">Step {{ step }} of {{ total_steps }}</div>
+  </div>
+  <form method="post">
+    {% if step == 1 %}
+      <div class="section-block">
+        <div class="section-title">Demographics & Background</div>
+        <div class="q-grid">
+          <div class="form-group">
+            <label for="q_demo_age">Age</label>
+            <input type="number" name="q_demo_age" id="q_demo_age" min="18" max="90" value="{{ defaults.get('q_demo_age', demographics.get('age', 30)) }}">
+          </div>
+          <div class="form-group">
+            <label for="q_demo_gender">Gender</label>
+            <input type="text" name="q_demo_gender" id="q_demo_gender" value="{{ defaults.get('q_demo_gender', demographics.get('gender','')) }}">
+          </div>
+          <div class="form-group">
+            <label for="q_demo_occupation">Occupation</label>
+            <input type="text" name="q_demo_occupation" id="q_demo_occupation" value="{{ defaults.get('q_demo_occupation', demographics.get('occupation','')) }}">
+          </div>
+          <div class="form-group">
+            <label for="q_demo_education">Highest education level</label>
+            <select name="q_demo_education" id="q_demo_education">
+              {% for opt in education_options %}
+                <option value="{{ opt }}" {% if defaults.get('q_demo_education', education_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Do you work in tech, data, or healthcare?</label>
+            <select name="q_demo_work_in_tech">
+              {% for opt in yes_no_options %}
+                <option value="{{ opt }}" {% if defaults.get('q_demo_work_in_tech', 'No') == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title">Health & Stress Context</div>
+        <div class="q-grid slider-grid">
+          <div class="form-group">
+            <label for="q_health_stress_level">Self-rated current stress/mental health level (1 = very low, 5 = very high)</label>
+            <div data-slider>
+              <input type="range" name="q_health_stress_level" id="q_health_stress_level" min="1" max="5" step="1" value="{{ defaults.get('q_health_stress_level', 3) }}">
+              <div class="slider-meta">
+                <span class="slider-edge-left">1</span>
+                <span class="slider-current"></span>
+                <span class="slider-edge-right">5</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Prior use of stress-assessment or mental-health tools</label>
+            <select name="q_health_prior_tool_use">
+              {% for opt in yes_no_options %}
+                <option value="{{ opt }}" {% if defaults.get('q_health_prior_tool_use', 'No') == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title">AI Literacy & Attitudes</div>
+        <div class="q-grid slider-grid">
+          <div class="form-group">
+            <label for="q_ai_knowledge">Self-rated AI knowledge (1 = none, 5 = advanced)</label>
+            <div data-slider>
+              <input type="range" name="q_ai_knowledge" id="q_ai_knowledge" min="1" max="5" step="1" value="{{ defaults.get('q_ai_knowledge', 3) }}">
+              <div class="slider-meta">
+                <span class="slider-edge-left">1</span>
+                <span class="slider-current"></span>
+                <span class="slider-edge-right">5</span>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="q_ai_tool_frequency">Frequency of AI tool use</label>
+            <select name="q_ai_tool_frequency" id="q_ai_tool_frequency">
+              {% for opt in ai_tool_frequency_options %}
+                <option value="{{ opt }}" {% if defaults.get('q_ai_tool_frequency', ai_tool_frequency_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title">GAAIS - Short Version</div>
+        <div class="q-grid slider-grid">
+          {% for key, label in likert_gaais %}
+            <div class="form-group">
+              <label>{{ label }}</label>
+              <div data-slider>
+                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}">
+                <div class="slider-meta">
+                  <span class="slider-edge-left">1</span>
+                  <span class="slider-current"></span>
+                  <span class="slider-edge-right">5</span>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title">Health App Experience</div>
+        <div class="q-grid">
+          <div class="form-group">
+            <label for="q_health_app_frequency">Frequency of health app or wearable use</label>
+            <select name="q_health_app_frequency" id="q_health_app_frequency">
+              {% for opt in health_app_frequency_options %}
+                <option value="{{ opt }}" {% if defaults.get('q_health_app_frequency', health_app_frequency_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    {% elif step == 2 %}
+      <div class="section-block">
+        <div class="section-title">Core Survey Items</div>
+        <div class="q-grid slider-grid">
+          {% for key, label in likert_core %}
+            <div class="form-group">
+              <label>{{ label }}</label>
+              <div data-slider>
+                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}">
+                <div class="slider-meta">
+                  <span class="slider-edge-left">1</span>
+                  <span class="slider-current"></span>
+                  <span class="slider-edge-right">5</span>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% elif step == 3 %}
+      <div class="section-block">
+        <div class="section-title">Behavioral Measures</div>
+        <div class="q-grid">
+          <div class="form-group">
+            <label for="q_attention_check_feature">Attention Check: Which feature increased your risk the most?</label>
+            <select name="q_attention_check_feature" id="q_attention_check_feature">
+              {% for opt in driver_options %}
+                <option value="{{ opt }}" {% if defaults.get('q_attention_check_feature', driver_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="q_system_preference">Which version of the system do you prefer: Basic or Advanced?</label>
+            <select name="q_system_preference" id="q_system_preference">
+              {% for opt in system_preference_options %}
+                <option value="{{ opt }}" {% if defaults.get('q_system_preference', system_preference_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-title">Open-Ended Questions</div>
+        <div style="display: grid; gap: 20px;">
+          <div class="form-group">
+            <label for="q_open_most_useful">What part of the assessment was most useful?</label>
+            <textarea name="q_open_most_useful" id="q_open_most_useful" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_most_useful', '') }}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="q_open_unclear">What part was unclear?</label>
+            <textarea name="q_open_unclear" id="q_open_unclear" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_unclear', '') }}</textarea>
+          </div>
+          <div class="form-group">
+            <label for="q_open_suggestions">Do you have suggestions for improvement?</label>
+            <textarea name="q_open_suggestions" id="q_open_suggestions" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_suggestions', '') }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      {% if likert_g2 %}
+        <div class="section-block">
+          <div class="section-title">Group 2 Only – Uncertainty & Explanations</div>
+          <div class="q-grid slider-grid">
+            {% for key, label in likert_g2 %}
+              <div class="form-group">
+                <label>{{ label }}</label>
+                <div data-slider>
+                  <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}">
+                  <div class="slider-meta">
+                    <span class="slider-edge-left">1</span>
+                    <span class="slider-current"></span>
+                    <span class="slider-edge-right">5</span>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+          <div style="display: grid; gap: 20px; grid-template-columns: 1fr;">
+            <div class="form-group">
+              <label for="q_open_uncertainty_impact">Did the uncertainty or explanations change how you interpreted the results?</label>
+              <textarea name="q_open_uncertainty_impact" id="q_open_uncertainty_impact" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_uncertainty_impact', '') }}</textarea>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endif %}
+
+    <div style="margin-top: 28px; display: flex; gap: 12px; justify-content: space-between;">
+      <div>
+        {% if step > 1 %}
+          <button type="submit" name="back">← Back</button>
+        {% endif %}
+      </div>
+      <div>
+        {% if step < total_steps %}
+          <button type="submit" name="next">Next →</button>
+        {% else %}
+          <button type="submit" name="submit">✓ Submit Feedback</button>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+<script>
+  const sliders = document.querySelectorAll("[data-slider]");
+  sliders.forEach((wrap) => {
+    const input = wrap.querySelector("input[type='range']");
+    const output = wrap.querySelector(".slider-current");
+    const labels = input.dataset.labels ? JSON.parse(input.dataset.labels) : null;
+    const update = () => {
+      const value = parseInt(input.value, 10);
+      const min = parseInt(input.min || "1", 10);
+      const max = parseInt(input.max || "5", 10);
+      const percent = ((value - min) / (max - min)) * 100;
+      if (labels && labels.length) {
+        output.textContent = labels[value - 1] || value;
+      } else {
+        output.textContent = value;
+      }
+      input.style.background = `linear-gradient(90deg, var(--primary) ${percent}%, #e1e7f5 ${percent}%)`;
+    };
+    input.addEventListener("input", update);
+    update();
+  });
+</script>
+{% endblock %}

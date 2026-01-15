@@ -148,6 +148,25 @@ ensure_participant_counter()
 
 ADMIN_KEY = resolve_admin_key()
 
+def switch_page(new_page: str):
+    """Switch pages and log time spent on the previous one."""
+    now = pd.Timestamp.now()
+    prev_page = st.session_state.get("current_page")
+    entry_time = st.session_state.get("page_entry_time")
+    if prev_page and entry_time is not None and new_page != prev_page:
+        duration_seconds = float((now - entry_time).total_seconds())
+        st.session_state["interaction_log"].append({
+            "timestamp": now.isoformat(),
+            "event": "page_duration",
+            "page": prev_page,
+            "duration_seconds": duration_seconds,
+            "user_id": st.session_state.get("user_id"),
+            "group": st.session_state.get("study_mode"),
+        })
+    if new_page != prev_page:
+        st.session_state["current_page"] = new_page
+        st.session_state["page_entry_time"] = now
+
 # ----------------------------
 # Session state initialization
 # ----------------------------
@@ -161,10 +180,20 @@ if "admin_mode" not in st.session_state:
     st.session_state["admin_mode"] = False
 if "view_mode" not in st.session_state:
     st.session_state["view_mode"] = "participant"
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "Assessment"
+if "page_entry_time" not in st.session_state:
+    st.session_state["page_entry_time"] = pd.Timestamp.now()
 if "study_analysis_results" not in st.session_state:
     st.session_state["study_analysis_results"] = None
 if "next_user_id" not in st.session_state:
     st.session_state["next_user_id"] = None
+if "current_demographics" not in st.session_state:
+    st.session_state["current_demographics"] = None
+if "pre_info_submitted" not in st.session_state:
+    st.session_state["pre_info_submitted"] = False
+if "pre_info_answers" not in st.session_state:
+    st.session_state["pre_info_answers"] = None
 
 # ----------------------------
 # Study mode selection
@@ -251,6 +280,68 @@ with st.expander("🔐 Researcher console", expanded=False):
 #                 f"All odd numbers join Group 1, even numbers join Group 2. "
 #                 f"Your assignment: **{mode_label}**."
 #             )
+
+# ----------------------------
+# Pre-assessment info gate
+# ----------------------------
+if st.session_state["view_mode"] == "participant" and not st.session_state["pre_info_submitted"]:
+    st.markdown("---")
+    st.header("Quick Pre-Study Questions")
+    st.caption("Before you start, please answer these to tailor the experience.")
+
+    with st.form("pre_study_info"):
+        works_in_tech = st.selectbox(
+            "Do you work in tech/data/healthcare?",
+            ["No", "Yes", "Prefer not to say"],
+            index=0
+        )
+        ai_familiarity = st.select_slider(
+            "Familiarity with AI systems (1–5)",
+            options=[1, 2, 3, 4, 5],
+            value=3
+        )
+        health_app_use = st.selectbox(
+            "Frequency of health app/wearable use",
+            ["Never", "Monthly", "Weekly", "Several times/week", "Daily"],
+            index=2
+        )
+        pre_submit = st.form_submit_button("Continue", type="primary", use_container_width=True)
+
+    if pre_submit:
+        st.session_state["pre_info_answers"] = {
+            "works_in_tech_data_healthcare": works_in_tech,
+            "ai_familiarity": ai_familiarity,
+            "health_app_use": health_app_use,
+        }
+        st.session_state["pre_info_submitted"] = True
+        st.session_state["interaction_log"].append({
+            "timestamp": pd.Timestamp.now().isoformat(),
+            "event": "pre_info_completed",
+            "user_id": st.session_state["user_id"],
+            "group": st.session_state["study_mode"],
+            "pre_info": st.session_state["pre_info_answers"],
+        })
+        st.success("Thanks! Loading your assessment...")
+        st.rerun()
+    st.stop()
+
+# ----------------------------
+# Participant navigation
+# ----------------------------
+if st.session_state["view_mode"] == "participant":
+    page_options = ["Assessment", "Results", "Survey"]
+    current_page = st.session_state.get("current_page", page_options[0])
+    if current_page not in page_options:
+        current_page = page_options[0]
+        st.session_state["current_page"] = current_page
+    page_choice = st.radio(
+        "Study navigation",
+        page_options,
+        index=page_options.index(current_page),
+        horizontal=True,
+    )
+    if page_choice != current_page:
+        switch_page(page_choice)
 
 # ----------------------------
 # Safety helpers
@@ -716,15 +807,15 @@ def run_study_analysis_pipeline():
     group_counts = surveys["group"].value_counts()
     if (group_counts < 5).any():
         warnings.append("Some study groups have fewer than 5 survey responses; interpret statistics carefully.")
-    stats_df = study_analysis.compute_statistics(surveys)
+    stats_df, surveys_with_metrics = study_analysis.compute_statistics(surveys)
     try:
-        study_analysis.analyze_correlations(surveys)
+        study_analysis.analyze_correlations(surveys_with_metrics)
     except Exception as exc:
         warnings.append(f"Correlation analysis failed: {exc}")
     figure_paths: List[Path] = []
     output_dir = getattr(study_analysis, "OUTPUT_DIR", Path("study_outputs"))
     try:
-        study_analysis.create_visualizations(surveys)
+        study_analysis.create_visualizations(surveys_with_metrics)
         figure_paths = [
             path for name in ["results_boxplots.png", "results_barplot.png", "results_distributions.png"]
             if (path := output_dir / name).exists()
@@ -733,7 +824,7 @@ def run_study_analysis_pipeline():
         warnings.append(f"Visualization generation failed: {exc}")
     export_paths: List[Path] = []
     try:
-        study_analysis.export_results(surveys, stats_df)
+        study_analysis.export_results(surveys_with_metrics, stats_df)
         export_paths = [
             path for name in ["survey_responses.csv", "statistical_results.csv", "summary_statistics.csv"]
             if (path := output_dir / name).exists()
@@ -743,15 +834,18 @@ def run_study_analysis_pipeline():
     report_text = ""
     report_path = output_dir / "study_report.txt"
     try:
-        study_analysis.generate_report(surveys, stats_df)
+        study_analysis.generate_report(surveys_with_metrics, stats_df)
         if report_path.exists():
             report_text = report_path.read_text()
     except Exception as exc:
         warnings.append(f"Report generation failed: {exc}")
-    qualitative = surveys[["group", "comments"]].dropna()
+    qualitative_cols = [c for c in ["resp.q_open_most_useful", "resp.q_open_unclear", "resp.q_open_suggestions", "resp.q_open_uncertainty_impact"] if c in surveys_with_metrics.columns]
+    qualitative = pd.DataFrame()
+    if qualitative_cols:
+        qualitative = surveys_with_metrics[["group"] + qualitative_cols].dropna(how="all", subset=qualitative_cols)
     return {
         "events": logs_df,
-        "surveys": surveys,
+        "surveys": surveys_with_metrics,
         "stats": stats_df,
         "warnings": warnings,
         "figures": figure_paths,
@@ -1088,6 +1182,37 @@ def render_admin_dashboard(df: pd.DataFrame, arts: Artifacts):
         use_container_width=True,
     )
 
+    st.markdown("### 🟢 Pre-Study Info (this session)")
+    pre_entries = [
+        entry for entry in st.session_state.get("interaction_log", [])
+        if entry.get("event") == "pre_info_completed" and isinstance(entry.get("pre_info"), dict)
+    ]
+    if pre_entries:
+        pre_df = pd.DataFrame([e["pre_info"] | {"user_id": e.get("user_id"), "group": e.get("group")} for e in pre_entries])
+        summary_cols = ["works_in_tech_data_healthcare", "ai_familiarity", "health_app_use"]
+        col_a, col_b, col_c = st.columns(3)
+        if "works_in_tech_data_healthcare" in pre_df.columns:
+            counts = pre_df["works_in_tech_data_healthcare"].value_counts().rename_axis("Answer").reset_index(name="Count")
+            col_a.markdown("**Do you work in tech/data/healthcare?**")
+            col_a.dataframe(counts, use_container_width=True, height=180)
+        if "ai_familiarity" in pre_df.columns:
+            counts = pre_df["ai_familiarity"].value_counts().sort_index().rename_axis("Familiarity (1–5)").reset_index(name="Count")
+            col_b.markdown("**AI familiarity (1–5)**")
+            col_b.dataframe(counts, use_container_width=True, height=180)
+        if "health_app_use" in pre_df.columns:
+            counts = pre_df["health_app_use"].value_counts().rename_axis("Frequency").reset_index(name="Count")
+            col_c.markdown("**Health app/wearable use**")
+            col_c.dataframe(counts, use_container_width=True, height=180)
+        st.download_button(
+            "⬇️ Download pre-study responses (CSV)",
+            pre_df.to_csv(index=False).encode("utf-8"),
+            file_name="pre_study_responses.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+    else:
+        st.info("No pre-study info submitted in this session yet.")
+
     st.markdown("### 🧪 Study Log Analysis")
     if study_analysis is None:
         st.warning("analyze_study.py is missing, so automated analysis cannot run.")
@@ -1246,58 +1371,67 @@ def predict_user(p: Dict) -> Dict:
 # ----------------------------
 # User input form
 # ----------------------------
-st.markdown("---")
-st.header("📝 Your Information")
+submitted = False
 
-with st.form("user_form"):
-    st.subheader("Demographics & Work")
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        age = st.number_input("Age", 18, 80, 30)
-    with col2:
-        gender_choices = arts.cat_categories.get("gender", ["male", "female", "other"])
-        gender = st.selectbox("Gender", gender_choices)
-    with col3:
-        occ_choices = arts.cat_categories.get("occupation", ["engineer", "nurse", "student"])
-        occupation = st.selectbox("Occupation", occ_choices)
-    with col4:
-        work_hours = st.number_input("Work Hours/Week", 0, 80, 40)
-    
-    st.subheader("Work & Stress Factors")
-    col5, col6, col7 = st.columns(3)
-    
-    with col5:
-        job_satisfaction = st.slider("Job Satisfaction (1-10)", 1, 10, 5)
-        workload = st.slider("Workload Rating (1-10)", 1, 10, 5)
-    with col6:
-        stress_events = st.slider("Stress Events (Last Week)", 0, 10, 2)
-        breaks = st.slider("Breaks/Workday", 0, 6, 3)
-    with col7:
-        commute = st.number_input("Commute Time (min)", 0, 180, 30)
-        outdoor_time = st.slider("Outdoor Time (hr/day)", 0.0, 8.0, 1.0, 0.5)
-    
-    st.subheader("Sleep & Health")
-    col8, col9 = st.columns(2)
-    
-    with col8:
-        sleep_quality = st.slider("Sleep Quality (1-10)", 1, 10, 7)
-        sleep_duration = st.slider("Sleep Duration (hours)", 3.0, 12.0, 7.0, 0.5)
-        exercise = st.slider("Physical Activity (times/week)", 0, 7, 3)
-    
-    with col9:
-        coffee = st.number_input("Coffee (cups/day)", 0.0, 10.0, 2.0)
-        alcohol = st.number_input("Alcohol (drinks/week)", 0, 20, 2)
-        screen_time = st.slider("Screen Time (hr/day)", 0.0, 16.0, 5.0, 0.5)
-    
-    st.subheader("Lifestyle")
-    col10, col11 = st.columns(2)
-    
-    with col10:
-        social = st.slider("Social Interactions (count/week)", 0, 30, 8)
-        screen_unlocks = st.number_input("Screen Unlocks/Day", 0, 500, 80)
-    
-    submitted = st.form_submit_button("🔍 Assess Stress Risk", type="primary", use_container_width=True)
+if st.session_state["current_page"] == "Assessment":
+    st.markdown("---")
+    st.header("📝 Your Information")
+
+    with st.form("user_form"):
+        st.subheader("Demographics & Work")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            age = st.number_input("Age", 18, 80, 30)
+        with col2:
+            gender_choices = arts.cat_categories.get("gender", ["male", "female", "other"])
+            if not gender_choices:
+                gender_choices = ["male", "female", "other"]
+            gender = st.selectbox("Gender", gender_choices)
+        with col3:
+            occ_choices = arts.cat_categories.get("occupation", ["engineer", "nurse", "student"])
+            if not occ_choices:
+                occ_choices = ["engineer", "nurse", "student"]
+            occupation = st.selectbox("Occupation", occ_choices)
+        with col4:
+            work_hours = st.number_input("Work Hours/Week", 0, 80, 40)
+        
+        st.subheader("Work & Stress Factors")
+        col5, col6, col7 = st.columns(3)
+        
+        with col5:
+            job_satisfaction = st.slider("Job Satisfaction (1-10)", 1, 10, 5)
+            workload = st.slider("Workload Rating (1-10)", 1, 10, 5)
+        with col6:
+            stress_events = st.slider("Stress Events (Last Week)", 0, 10, 2)
+            breaks = st.slider("Breaks/Workday", 0, 6, 3)
+        with col7:
+            commute = st.number_input("Commute Time (min)", 0, 180, 30)
+            outdoor_time = st.slider("Outdoor Time (hr/day)", 0.0, 8.0, 1.0, 0.5)
+        
+        st.subheader("Sleep & Health")
+        col8, col9 = st.columns(2)
+        
+        with col8:
+            sleep_quality = st.slider("Sleep Quality (1-10)", 1, 10, 7)
+            sleep_duration = st.slider("Sleep Duration (hours)", 3.0, 12.0, 7.0, 0.5)
+            exercise = st.slider("Physical Activity (times/week)", 0, 7, 3)
+        
+        with col9:
+            coffee = st.number_input("Coffee (cups/day)", 0.0, 10.0, 2.0)
+            alcohol = st.number_input("Alcohol (drinks/week)", 0, 20, 2)
+            screen_time = st.slider("Screen Time (hr/day)", 0.0, 16.0, 5.0, 0.5)
+        
+        st.subheader("Lifestyle")
+        col10, col11 = st.columns(2)
+        
+        with col10:
+            social = st.slider("Social Interactions (count/week)", 0, 30, 8)
+            screen_unlocks = st.number_input("Screen Unlocks/Day", 0, 500, 80)
+        
+        submitted = st.form_submit_button("🔍 Assess Stress Risk", type="primary", use_container_width=True)
+else:
+    st.info("Switch to the Assessment page to adjust your inputs.")
 
 if submitted:
     user_data = {
@@ -1320,10 +1454,19 @@ if submitted:
         "social_interactions_count": social,
         "screen_unlocks_per_day": screen_unlocks
     }
+
+    demographics = {
+        "age": age,
+        "gender": gender,
+        "occupation": occupation,
+    }
+    pre_info = st.session_state.get("pre_info_answers") or {}
+    demographics.update(pre_info)
     
     pred = predict_user(user_data)
     st.session_state["current_prediction"] = pred
     st.session_state["current_user"] = user_data
+    st.session_state["current_demographics"] = demographics
     
     st.session_state["interaction_log"].append({
         "timestamp": pd.Timestamp.now().isoformat(),
@@ -1331,22 +1474,38 @@ if submitted:
         "user_id": st.session_state["user_id"],
         "group": st.session_state["study_mode"],
         "user_data": user_data,
-        "prediction": pred
+        "prediction": pred,
+        "demographics": demographics
     })
+    switch_page("Results")
+    st.rerun()
 
 # ----------------------------
-# Results display
+# Results display (Results page only)
 # ----------------------------
-if "current_prediction" in st.session_state:
+if st.session_state.get("current_page") == "Results":
     st.markdown("---")
     st.header("📊 Stress Risk Assessment Results")
     
+<<<<<<< HEAD
     pred = st.session_state["current_prediction"]
     risk = pred["risk"]
     
     # G1: Basic display
     if st.session_state["study_mode"] == "G1":
         with result_card("Your Stress Risk Score", tag="Assessment Result") as card:
+=======
+    if "current_prediction" not in st.session_state:
+        st.info("Submit the assessment on the Assessment page to view results.")
+    else:
+        pred = st.session_state["current_prediction"]
+        risk = pred["risk"]
+        
+        # G1: Basic display
+        if st.session_state["study_mode"] == "G1":
+            st.markdown("### Your Stress Risk Score")
+            
+>>>>>>> c9289ae4efcedf1d4f9b6fe3310b818ddb7efadf
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = risk * 100,
@@ -1365,6 +1524,7 @@ if "current_prediction" in st.session_state:
             card.plotly_chart(fig, use_container_width=True)
             
             if risk < 0.33:
+<<<<<<< HEAD
                 card.success("✅ Low Stress Risk")
             elif risk < 0.66:
                 card.warning("⚠️ Moderate Stress Risk")
@@ -1498,6 +1658,139 @@ if "current_prediction" in st.session_state:
                 driver_df["Direction"] = driver_df["Impact"].apply(
                     lambda x: "Increases ↑" if x > 0 else "Decreases ↓"
                 )
+=======
+                st.success("✅ Low Stress Risk")
+            elif risk < 0.66:
+                st.warning("⚠️ Moderate Stress Risk")
+            else:
+                st.error("🚨 High Stress Risk")
+        
+        # G2: Enhanced display
+        else:
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                st.markdown("### Stress Risk with Uncertainty")
+                
+                lo = pred["uncertainty"]["lower"]
+                hi = pred["uncertainty"]["upper"]
+                confidence = interpret_confidence(lo, hi)
+                coverage = compute_coverage_signal(hi - lo, pred["ood_flag"])
+                
+                fig = go.Figure(go.Indicator(
+                    mode = "gauge+number",
+                    value = risk * 100,
+                    title = {'text': "Stress Risk Level (%)"},
+                    gauge = {
+                        'axis': {'range': [None, 100]},
+                        'bar': {'color': "darkblue"},
+                        'steps': [
+                            {'range': [0, 33], 'color': "lightgreen"},
+                            {'range': [33, 66], 'color': "yellow"},
+                            {'range': [66, 100], 'color': "salmon"}
+                        ]
+                    }
+                ))
+                fig.update_layout(height=300)
+                st.plotly_chart(fig, use_container_width=True)
+                
+                st.markdown("#### How to read this")
+                st.markdown(f"**Confidence level:** {confidence['level']}")
+                st.write(confidence["explanation"])
+                st.caption(
+                    f"In everyday terms: out of 100 similar people, about 90 are expected to land between "
+                    f"{lo*100:.0f}% and {hi*100:.0f}% stress risk."
+                )
+                aleatoric_std = pred["uncertainty"].get("aleatoric_std", 0.0)
+                epistemic_std = pred["uncertainty"].get("epistemic_std", 0.0)
+                st.markdown("#### Why do we show a range?")
+                st.markdown(
+                    f"{explain_uncertainty_sources(aleatoric_std, epistemic_std)}"
+                )
+                
+                st.markdown("#### Two Types of Uncertainty")
+                total_unc = aleatoric_std + epistemic_std
+                if total_unc <= 1e-4:
+                    st.info(
+                        "Both natural variation and AI knowledge gaps are essentially zero right now, so the model is very "
+                        "confident and the bar chart would be empty. If the range widens later, the bars will show which "
+                        "source is responsible."
+                    )
+                else:
+                    fig_unc = go.Figure(data=[
+                        go.Bar(
+                            name="Natural variation",
+                            y=["Sources"],
+                            x=[aleatoric_std * 100],
+                            orientation="h",
+                            marker_color="#58c4dd",
+                            text=f"{aleatoric_std * 100:.1f}%",
+                            textposition="inside"
+                        ),
+                        go.Bar(
+                            name="AI knowledge gaps",
+                            y=["Sources"],
+                            x=[epistemic_std * 100],
+                            orientation="h",
+                            marker_color="#ffa07a",
+                            text=f"{epistemic_std * 100:.1f}%",
+                            textposition="inside"
+                        ),
+                    ])
+                    fig_unc.update_layout(
+                        barmode="stack",
+                        height=220,
+                        xaxis_title="Share of total uncertainty (%)",
+                        yaxis=dict(showticklabels=False),
+                        margin=dict(l=10, r=10, t=10, b=10),
+                        template="plotly_white",
+                        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0)
+                    )
+                    st.plotly_chart(fig_unc, use_container_width=True)
+                    st.caption(
+                        "Longer bars mean that source takes up more of the uncertainty band around your score."
+                    )
+                with st.expander("💡 What do these mean?", expanded=False):
+                    st.markdown("""
+                    **🌊 Natural variation** (aleatoric uncertainty)  
+                    • Stress naturally swings from day to day, just like your heart rate or weight  
+                    • The model always keeps this buffer because no one has perfectly steady habits  
+                    • This part cannot be eliminated- it is the noise of daily life  
+
+                    **🧩 AI knowledge gaps** (epistemic uncertainty)  
+                    • The AI has seen fewer people with your exact pattern, so it hedges its bets  
+                    • Think of a new doctor versus a specialist-experience narrows this portion  
+                    • Collecting more similar data points would shrink this slice
+                    """)
+                
+                st.markdown("#### Uncertainty Metrics")
+                unc_width = hi - lo
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Lower Bound", f"{lo*100:.1f}%")
+                c2.metric("Upper Bound", f"{hi*100:.1f}%")
+                c3.metric("Range", f"±{unc_width*50:.1f}%")
+                st.caption(
+                    "Lower bound: the most cautious estimate. Upper bound: the highest likely score. "
+                    "Range: how much padding we keep on each side of the best estimate."
+                )
+                
+                if coverage["tone"] == "success":
+                    st.success(f"{coverage['label']}: {coverage['message']}")
+                elif coverage["tone"] == "warning":
+                    st.warning(f"{coverage['label']}: {coverage['message']}")
+                else:
+                    st.info(f"{coverage['label']}: {coverage['message']}")
+        
+            with col2:
+                st.markdown("### Key Stress Drivers")
+                st.markdown("Factors with the most impact on your risk score:")
+                
+                drivers = pred["drivers"]
+                driver_df = pd.DataFrame(drivers, columns=["Factor", "Impact"])
+                driver_df["Direction"] = driver_df["Impact"].apply(
+                    lambda x: "Increases ↑" if x > 0 else "Decreases ↓"
+                )
+>>>>>>> c9289ae4efcedf1d4f9b6fe3310b818ddb7efadf
                 
                 fig_shap = px.bar(
                     driver_df, y="Factor", x="Impact", orientation='h',
@@ -1505,6 +1798,7 @@ if "current_prediction" in st.session_state:
                     color_discrete_map={"Increases ↑": "#ff6b6b", "Decreases ↓": "#51cf66"}
                 )
                 fig_shap.update_layout(height=350, yaxis={'categoryorder':'total ascending'})
+<<<<<<< HEAD
                 card.plotly_chart(fig_shap, use_container_width=True)
                 
                 card.markdown("#### Plain-English Reason Codes")
@@ -1513,6 +1807,36 @@ if "current_prediction" in st.session_state:
                     card.write(
                         f"{arrow} **{friendly_feature_name(feat)}** ({impact:+.2f}) - "
                         f"{describe_driver(feat, impact, st.session_state['current_user'], arts.ranges)}."
+=======
+                st.plotly_chart(fig_shap, use_container_width=True)
+                
+                st.markdown("#### Plain-English Reason Codes")
+                for feat, impact in drivers:
+                    arrow = "⚠️" if impact > 0 else "✅"
+                    st.write(
+                        f"{arrow} **{friendly_feature_name(feat)}** ({impact:+.2f}) - "
+                        f"{describe_driver(feat, impact, st.session_state['current_user'], arts.ranges)}."
+                    )
+        
+        st.markdown("### 🔁 What-if Sandbox")
+        with st.expander("Try small changes and see how risk shifts:", expanded=False):
+            baseline_user = st.session_state.get("current_user")
+            if not baseline_user:
+                st.caption("Submit the form above to unlock scenario testing.")
+            else:
+                adjustable = []
+                for feat, _ in pred["drivers"]:
+                    if feat in arts.feature_cols and feat not in adjustable:
+                        adjustable.append(feat)
+                if not adjustable:
+                    st.caption("No adjustable factors available from the current explanation.")
+                else:
+                    feature_choice = st.selectbox(
+                        "Pick a factor to tweak",
+                        adjustable,
+                        format_func=friendly_feature_name,
+                        key="what_if_feature"
+>>>>>>> c9289ae4efcedf1d4f9b6fe3310b818ddb7efadf
                     )
         
         with result_card("🔁 What-if Sandbox", tag="Scenario Lab") as card:
@@ -1534,6 +1858,7 @@ if "current_prediction" in st.session_state:
                             format_func=friendly_feature_name,
                             key="what_if_feature"
                         )
+<<<<<<< HEAD
                         new_value = baseline_user.get(feature_choice)
                         control_key = f"what_if_value_{feature_choice}"
                         if feature_choice in NUM_COLS:
@@ -1600,42 +1925,181 @@ if "current_prediction" in st.session_state:
     if st.button("Generate My Plan", type="primary", use_container_width=True):
         plan = generate_stress_management_plan(st.session_state["current_user"], pred)
         st.session_state["stress_plan"] = plan
+=======
+>>>>>>> c9289ae4efcedf1d4f9b6fe3310b818ddb7efadf
         
-        st.session_state["interaction_log"].append({
-            "timestamp": pd.Timestamp.now().isoformat(),
-            "event": "plan_generated",
-            "user_id": st.session_state["user_id"],
-            "group": st.session_state["study_mode"]
-        })
-    
-    if "stress_plan" in st.session_state:
-        display_stress_plan(st.session_state["stress_plan"])
-        
-        # Feedback survey
+        # Stress management plan
         st.markdown("---")
-        st.header("📋 Feedback Survey")
+        st.header("📅 Your Personalized Stress Management Plan")
         
-        with st.form("feedback_form"):
-            trust = st.slider("Trust in this assessment?", 1, 5, 3)
-            follow = st.slider("Likelihood to follow recommendations?", 1, 5, 3)
-            useful = st.slider("Usefulness of the assessment?", 1, 5, 3)
-            comments = st.text_area("Additional comments?", placeholder="Your feedback...")
+        if st.button("Generate My Plan", type="primary", use_container_width=True):
+            plan = generate_stress_management_plan(st.session_state["current_user"], pred)
+            st.session_state["stress_plan"] = plan
             
-            survey_submit = st.form_submit_button("Submit", use_container_width=True)
+            st.session_state["interaction_log"].append({
+                "timestamp": pd.Timestamp.now().isoformat(),
+                "event": "plan_generated",
+                "user_id": st.session_state["user_id"],
+                "group": st.session_state["study_mode"]
+            })
         
+        if "stress_plan" in st.session_state:
+            display_stress_plan(st.session_state["stress_plan"])
+            st.caption("When you are ready, move to the Survey page to share your feedback.")
+
+# ----------------------------
+# Questionnaire (Survey page only)
+# ----------------------------
+if st.session_state.get("current_page") == "Survey":
+    st.markdown("---")
+    st.header("📋 Stress Risk Assessment - User Study Questionnaire")
+    st.caption("Please answer after reviewing your results/plan. Use 1 = strongly disagree to 5 = strongly agree unless noted.")
+
+    if "current_prediction" not in st.session_state:
+        st.info("Complete the assessment and view your results before filling out the survey.")
+    else:
+        driver_options = [friendly_feature_name(f) for f, _ in st.session_state["current_prediction"].get("drivers", [])]
+        if not driver_options:
+            driver_options = ["Workload rating", "Sleep quality", "Stress events last week"]
+        driver_options.append("Not sure / prefer not to answer")
+
+        demo_defaults = st.session_state.get("current_demographics") or {}
+
+        with st.form("study_questionnaire"):
+            likert_scale = [1, 2, 3, 4, 5]
+            responses: Dict[str, object] = {}
+
+            def likert(label: str, key: str, default: int = 3) -> int:
+                return st.select_slider(label, options=likert_scale, value=default, key=key)
+
+            st.subheader("1 - Demographics & Background")
+            col_a, col_b, col_c = st.columns(3)
+            with col_a:
+                default_age = demo_defaults.get("age", 30)
+                try:
+                    default_age = int(default_age)
+                except Exception:
+                    default_age = 30
+                responses["q_demo_age"] = st.number_input("Age", 18, 90, default_age, key="q_demo_age")
+            with col_b:
+                gender_opts = arts.cat_categories.get("gender", ["male", "female", "other"])
+                if not gender_opts:
+                    gender_opts = ["male", "female", "other"]
+                gender_default = str(demo_defaults.get("gender", "")).lower()
+                gender_index = gender_opts.index(gender_default) if gender_default in gender_opts else 0
+                responses["q_demo_gender"] = st.selectbox("Gender", gender_opts, index=gender_index, key="q_demo_gender")
+            with col_c:
+                responses["q_demo_occupation"] = st.text_input("Occupation", value=str(demo_defaults.get("occupation", "")), key="q_demo_occupation")
+            responses["q_demo_education"] = st.selectbox(
+                "Highest education level",
+                ["High school", "Associate degree", "Bachelor's degree", "Master's degree", "Doctorate", "Other"],
+                key="q_demo_education"
+            )
+            responses["q_demo_work_in_tech"] = st.radio(
+                "Do you work in tech, data, or healthcare?",
+                ["No", "Yes"],
+                index=0 if str(demo_defaults.get("works_in_tech_data_healthcare", "No")).lower().startswith("n") else 1,
+                key="q_demo_work_in_tech"
+            )
+
+            st.subheader("2 - Health & Stress Context")
+            responses["q_health_stress_level"] = likert("Self-rated current stress/mental health level (1 = very low, 5 = very high)", "q_health_stress_level")
+            responses["q_health_prior_tool_use"] = st.radio(
+                "Prior use of stress-assessment or mental-health tools",
+                ["No", "Yes"],
+                key="q_health_prior_tool_use"
+            )
+
+            st.subheader("3 - AI Literacy & Attitudes")
+            responses["q_ai_knowledge"] = likert("Self-rated AI knowledge (1 = none, 5 = advanced)", "q_ai_knowledge")
+            responses["q_ai_tool_frequency"] = st.selectbox(
+                "Frequency of AI tool use",
+                ["Never", "Occasionally", "Weekly", "Daily"],
+                key="q_ai_tool_frequency"
+            )
+            st.markdown("**GAAIS – Short Version (Validated attitude items)**")
+            responses["q_gaais_beneficial"] = likert("AI technologies are generally beneficial for society.", "q_gaais_beneficial")
+            responses["q_gaais_trust_decisions"] = likert("AI systems can usually be trusted to make good decisions.", "q_gaais_trust_decisions")
+            responses["q_gaais_bias_concern"] = likert("I am concerned about AI making incorrect or biased decisions. (reverse-coded)", "q_gaais_bias_concern")
+            responses["q_gaais_comfort_using"] = likert("I feel comfortable using AI tools in my daily life.", "q_gaais_comfort_using")
+
+            st.markdown("**Health App Experience**")
+            responses["q_health_app_frequency"] = st.selectbox(
+                "Frequency of health app or wearable use",
+                ["Never", "Monthly", "Weekly", "Daily"],
+                key="q_health_app_frequency"
+            )
+
+            st.subheader("Core Survey Items (Both Groups)")
+            st.markdown("**Trust & Confidence**")
+            responses["q_trust_assessment"] = likert("I trust the stress risk assessment provided by this system.", "q_trust_assessment")
+            responses["q_confident_rely"] = likert("I feel confident relying on this system to understand my stress/mental health.", "q_confident_rely")
+
+            st.markdown("**Perceived Accuracy**")
+            responses["q_prediction_accurate"] = likert("The prediction seems accurate for me.", "q_prediction_accurate")
+            responses["q_risk_reflects_level"] = likert("The risk score reflects my current stress level.", "q_risk_reflects_level")
+
+            st.markdown("**Perceived Usefulness**")
+            responses["q_results_useful"] = likert("The results are useful for understanding my stress/mental health.", "q_results_useful")
+            responses["q_recommendations_relevant"] = likert("The recommendations feel relevant to my situation.", "q_recommendations_relevant")
+
+            st.markdown("**Willingness & Decision Support**")
+            responses["q_follow_plan"] = likert("I would follow the recommended stress-management plan.", "q_follow_plan")
+            responses["q_use_again_health"] = likert("I would use this system again for health-related decisions.", "q_use_again_health")
+
+            st.markdown("**Behavioral Measures**")
+            responses["q_try_plan_this_week"] = likert("How likely are you to try the recommended plan this week?", "q_try_plan_this_week")
+            responses["q_attention_check_feature"] = st.selectbox(
+                "Attention Check: Which feature increased your risk the most?",
+                driver_options,
+                key="q_attention_check_feature"
+            )
+            responses["q_system_preference"] = st.radio(
+                "Which version of the system do you prefer: Basic or Advanced?",
+                ["Basic", "Advanced", "No preference"],
+                index=1 if st.session_state["study_mode"] == "G2" else 0,
+                key="q_system_preference"
+            )
+
+            st.markdown("**User Experience (UX)**")
+            responses["q_ux_easy"] = likert("The interface was easy to use.", "q_ux_easy")
+            responses["q_ux_clear_results"] = likert("The results were clear.", "q_ux_clear_results")
+            responses["q_ux_comfortable"] = likert("I felt comfortable interacting with the system.", "q_ux_comfortable")
+
+            st.subheader("Open-Ended Questions")
+            responses["q_open_most_useful"] = st.text_area("What part of the assessment was most useful?", key="q_open_most_useful")
+            responses["q_open_unclear"] = st.text_area("What part was unclear?", key="q_open_unclear")
+            responses["q_open_suggestions"] = st.text_area("Do you have suggestions for improvement?", key="q_open_suggestions")
+
+            if st.session_state["study_mode"] == "G2":
+                st.subheader("Group 2 Only – Uncertainty & Explanations")
+                st.markdown("**Uncertainty Displays**")
+                responses["q_uncertainty_helped"] = likert("The uncertainty information helped me understand the system’s confidence.", "q_uncertainty_helped")
+                responses["q_uncertainty_transparent"] = likert("Showing uncertainty made the prediction feel more transparent.", "q_uncertainty_transparent")
+                responses["q_uncertainty_preference"] = likert("I prefer systems that show uncertainty over single-number outputs.", "q_uncertainty_preference")
+
+                st.markdown("**Explanations (XAI)**")
+                responses["q_xai_helped"] = likert("The explanations helped me understand the prediction.", "q_xai_helped")
+                responses["q_xai_clear"] = likert("The feature-importance visualization was clear.", "q_xai_clear")
+                responses["q_xai_increased_trust"] = likert("The explanations increased my trust in the result.", "q_xai_increased_trust")
+                responses["q_open_uncertainty_impact"] = st.text_area(
+                    "Did the uncertainty or explanations change how you interpreted the results?",
+                    key="q_open_uncertainty_impact"
+                )
+
+            survey_submit = st.form_submit_button("Submit Questionnaire", use_container_width=True)
+
         if survey_submit:
             st.session_state["interaction_log"].append({
                 "timestamp": pd.Timestamp.now().isoformat(),
-                "event": "survey_completed",
+                "event": "questionnaire_completed",
                 "user_id": st.session_state["user_id"],
                 "group": st.session_state["study_mode"],
-                "trust_score": trust,
-                "follow_likelihood": follow,
-                "usefulness": useful,
-                "comments": comments
+                "responses": responses,
+                "demographics": st.session_state.get("current_demographics"),
             })
-            
-            st.success("✅ Thank you for your feedback!")
+
+            st.success("✅ Thank you for completing the study questionnaire!")
             save_interaction_log()
 
 st.markdown("---")

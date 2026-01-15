@@ -1,0 +1,3 @@
+[theme]
+# Match Streamlit primary accent color to product blue
+primaryColor = "#1f77b4"
