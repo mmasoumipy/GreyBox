@@ -736,14 +736,22 @@ def before_request():
 # ----------------------------
 @app.route("/")
 def home():
-    return redirect(url_for("assessment"))
+    return redirect(url_for("ethics"))
 
 @app.route("/reset-session")
 def reset_session():
     """Clear current participant session so a new user_id/group is assigned."""
     session.clear()
     flash("Session reset. Next request will assign a new participant ID.")
-    return redirect(url_for("assessment"))
+    return redirect(url_for("ethics"))
+
+@app.route("/ethics", methods=["GET", "POST"])
+def ethics():
+    if request.method == "POST":
+        session["ethics_ack"] = True
+        session["ethics_ack_ts"] = datetime.utcnow().isoformat()
+        return redirect(url_for("assessment"))
+    return render_template("ethics.html")
 
 def parse_form_value(name: str, cast_fn, default=None):
     try:
@@ -753,6 +761,8 @@ def parse_form_value(name: str, cast_fn, default=None):
 
 @app.route("/assessment", methods=["GET", "POST"])
 def assessment():
+    if not session.get("ethics_ack"):
+        return redirect(url_for("ethics"))
     group = session.get("group", "G1")
     defaults = session.get("form_defaults", {})
     if request.method == "POST":

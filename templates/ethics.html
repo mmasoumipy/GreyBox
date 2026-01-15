@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <h2 style="margin-top:0;">Ethics & Consent</h2>
+  <p class="text-muted">Please review this before starting the assessment.</p>
+
+  <div class="section-title">Study information</div>
+  <p><strong>Study Title:</strong> Grey Box</p>
+  <p><strong>Researcher:</strong> Mina Masoumi</p>
+  <p><strong>Researcher’s Contact Information:</strong> mina.masoumi@concordia</p>
+  <p><strong>Faculty Supervisor:</strong> Dr. Marta Kersten-Oertel</p>
+
+  <p style="margin-top: 18px;">
+    You are invited to participate in the research study described above. This form provides information about
+    what participating entails. Please read it carefully before deciding whether to participate. If you have any
+    questions or need more information, please contact the researcher.
+  </p>
+
+  <div class="section-title" style="margin-top: 18px;">A. Purpose</div>
+  <p>
+    This study explores how people interpret a stress risk assessment and its explanations. The goal is to
+    understand what makes results feel clear, trustworthy, and actionable so we can improve decision-support
+    tools for well-being.
+  </p>
+
+  <div class="section-title" style="margin-top: 18px;">B. Procedures</div>
+  <p>
+    If you choose to participate, you will complete a short assessment about your demographics, work, sleep,
+    and lifestyle. The system will generate a stress risk result, and you may view additional explanations and
+    a personalized plan. You may also be invited to complete a brief feedback survey.
+  </p>
+  <ul>
+    <li>Fill in the assessment form and submit it to receive your results.</li>
+    <li>Review your results and (optional) generate a personalized plan.</li>
+  </ul>
+  <p>The order of screens is fixed. The optional survey appears after you view your plan.</p>
+
+  <div class="section-title" style="margin-top: 18px;">C. Risks and Benefits</div>
+  <p>
+    This research is not intended to provide medical advice or diagnosis. You may encounter questions that
+    feel personal; you can skip any item or stop at any time. There may be no direct benefit to you, but your
+    participation helps improve how such tools communicate results.
+  </p>
+
+  <div class="section-title" style="margin-top: 18px;">D. Confidentiality</div>
+  <p>
+    Your responses will be used to generate results and may be logged for research or quality improvement.
+    We will store data using participant IDs rather than names and will not publish any information that can
+    identify you.
+  </p>
+
+  <div class="section-title" style="margin-top: 18px;">E. Conditions of Participation</div>
+  <p>
+    Participation is entirely voluntary. You may withdraw at any time without any consequences.
+    You may also request that your data not be used by contacting the researcher before analysis begins.
+  </p>
+
+  <div class="section-title" style="margin-top: 18px;">F. Participant’s Declaration</div>
+  <p>
+    I have read and understood this form. I have been given the opportunity to contact the principal
+    investigator if questions arise. I agree to participate in this research under the described conditions.
+  </p>
+  <p>
+    If you have questions about the scientific or scholarly aspects of this research, please contact the
+    researcher. You may also contact their faculty supervisor.
+  </p>
+
+  <p style="margin-top: 18px;"><strong>Estimated time:</strong> 10–15 minutes</p>
+  <p>Thank you for your support!</p>
+
+  <form method="post" style="margin-top: 18px;">
+    <div style="margin-top: 18px;">
+      <button type="submit">Continue to Assessment</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

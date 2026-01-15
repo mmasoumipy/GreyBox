@@ -451,6 +451,7 @@
   <header>
     <div class="title">Stress Risk Assessment</div>
     <nav>
+      <a href="{{ url_for('ethics') }}" class="{% if request.endpoint == 'ethics' %}active{% endif %}">Ethics</a>
       <a href="{{ url_for('assessment') }}" class="{% if request.endpoint == 'assessment' %}active{% endif %}">Assessment & Results</a>
       <a href="{{ url_for('survey') }}" class="{% if request.endpoint == 'survey' %}active{% endif %}">Survey</a>
     </nav>
