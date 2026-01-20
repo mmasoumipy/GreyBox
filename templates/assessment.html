@@ -2,17 +2,22 @@
 {% block content %}
 <div class="card">
   <h2 style="margin-top:0;">Assessment & Results</h2>
-  <p class="text-muted">Provide your details to get a personalized stress risk score and plan.</p>
+  <p class="text-text">This short assessment helps you understand your current stress load and how it may be affecting your energy, focus, sleep, and overall wellbeing.</p>
+  <p class="text-text">Answer the questions below based on a typical week. Your responses are used to calculate a personalized stress risk score and generate practical recommendations to help you reduce stress. The more accurately you answer, the more useful your results will be.</p>
+  <p class="text-text">Takes about 2-3 minutes to complete.</p>
   <form method="post">
     <div class="section-title">Demographics & Work</div>
     <div class="q-grid">
       <div class="form-group">
         <label for="age">Age</label>
-        <input type="number" name="age" id="age" min="18" max="90" value="{{ defaults.get('age', 30) }}">
+        <div class="field-hint">How old are you?</div>
+        <input type="number" name="age" id="age" min="18" max="90" value="{{ defaults.get('age', '') }}" required>
       </div>
       <div class="form-group">
         <label for="gender">Gender</label>
-        <select name="gender" id="gender">
+        <div class="field-hint">Select the option that best fits.</div>
+        <select name="gender" id="gender" required>
+          <option value="" disabled {% if not defaults.get('gender') %}selected{% endif %}>Select...</option>
           {% for opt in gender_choices %}
             <option value="{{ opt }}" {% if defaults.get('gender','') == opt %}selected{% endif %}>{{ opt.title() }}</option>
           {% endfor %}
@@ -20,7 +25,9 @@
       </div>
       <div class="form-group">
         <label for="occupation">Occupation</label>
-        <select name="occupation" id="occupation">
+        <div class="field-hint">Choose the closest match.</div>
+        <select name="occupation" id="occupation" required>
+          <option value="" disabled {% if not defaults.get('occupation') %}selected{% endif %}>Select...</option>
           {% for opt in occupation_choices %}
             <option value="{{ opt }}" {% if defaults.get('occupation','') == opt %}selected{% endif %}>{{ opt.title() }}</option>
           {% endfor %}
@@ -32,27 +39,33 @@
     <div class="q-grid">
       <div class="form-group">
         <label for="work_hours_per_week">Work Hours / Week</label>
-        <input type="number" name="work_hours_per_week" id="work_hours_per_week" min="0" max="80" value="{{ defaults.get('work_hours_per_week', 40) }}">
+        <div class="field-hint">Total hours worked in a typical week.</div>
+        <input type="number" name="work_hours_per_week" id="work_hours_per_week" min="0" max="80" value="{{ defaults.get('work_hours_per_week', '') }}" required>
       </div>
       <div class="form-group">
         <label for="job_satisfaction">Job Satisfaction (1-10)</label>
-        <input type="number" name="job_satisfaction" id="job_satisfaction" min="1" max="10" value="{{ defaults.get('job_satisfaction', 5) }}">
+        <div class="field-hint">1 = very dissatisfied, 10 = very satisfied.</div>
+        <input type="number" name="job_satisfaction" id="job_satisfaction" min="1" max="10" value="{{ defaults.get('job_satisfaction', '') }}" required>
       </div>
       <div class="form-group">
         <label for="workload_rating">Workload Rating (1-10)</label>
-        <input type="number" name="workload_rating" id="workload_rating" min="1" max="10" value="{{ defaults.get('workload_rating', 5) }}">
+        <div class="field-hint">1 = very light, 10 = overwhelming.</div>
+        <input type="number" name="workload_rating" id="workload_rating" min="1" max="10" value="{{ defaults.get('workload_rating', '') }}" required>
       </div>
       <div class="form-group">
         <label for="stress_event_count_last_week">Stress Events (Last Week)</label>
-        <input type="number" name="stress_event_count_last_week" id="stress_event_count_last_week" min="0" max="10" value="{{ defaults.get('stress_event_count_last_week', 2) }}">
+        <div class="field-hint">Count of stressful events in the last 7 days.</div>
+        <input type="number" name="stress_event_count_last_week" id="stress_event_count_last_week" min="0" max="10" value="{{ defaults.get('stress_event_count_last_week', '') }}" required>
       </div>
       <div class="form-group">
         <label for="breaks_per_workday">Breaks per Workday</label>
-        <input type="number" name="breaks_per_workday" id="breaks_per_workday" min="0" max="10" value="{{ defaults.get('breaks_per_workday', 3) }}">
+        <div class="field-hint">Short breaks away from work.</div>
+        <input type="number" name="breaks_per_workday" id="breaks_per_workday" min="0" max="10" value="{{ defaults.get('breaks_per_workday', '') }}" required>
       </div>
       <div class="form-group">
         <label for="commute_time_min">Commute Time (min)</label>
-        <input type="number" name="commute_time_min" id="commute_time_min" min="0" max="180" value="{{ defaults.get('commute_time_min', 30) }}">
+        <div class="field-hint">Typical one-way commute.</div>
+        <input type="number" name="commute_time_min" id="commute_time_min" min="0" max="180" value="{{ defaults.get('commute_time_min', '') }}" required>
       </div>
     </div>
 
@@ -60,27 +73,33 @@
     <div class="q-grid">
       <div class="form-group">
         <label for="sleep_quality_rating">Sleep Quality (1-10)</label>
-        <input type="number" name="sleep_quality_rating" id="sleep_quality_rating" min="1" max="10" value="{{ defaults.get('sleep_quality_rating', 7) }}">
+        <div class="field-hint">1 = very poor, 10 = excellent.</div>
+        <input type="number" name="sleep_quality_rating" id="sleep_quality_rating" min="1" max="10" value="{{ defaults.get('sleep_quality_rating', '') }}" required>
       </div>
       <div class="form-group">
         <label for="sleep_duration_hr">Sleep Duration (hours)</label>
-        <input type="number" step="0.5" name="sleep_duration_hr" id="sleep_duration_hr" min="3" max="12" value="{{ defaults.get('sleep_duration_hr', 7.0) }}">
+        <div class="field-hint">Average hours per night.</div>
+        <input type="number" step="0.5" name="sleep_duration_hr" id="sleep_duration_hr" min="3" max="12" value="{{ defaults.get('sleep_duration_hr', '') }}" required>
       </div>
       <div class="form-group">
         <label for="physical_activity_frequency">Physical Activity (times/week)</label>
-        <input type="number" name="physical_activity_frequency" id="physical_activity_frequency" min="0" max="7" value="{{ defaults.get('physical_activity_frequency', 3) }}">
+        <div class="field-hint">Number of exercise sessions per week.</div>
+        <input type="number" name="physical_activity_frequency" id="physical_activity_frequency" min="0" max="7" value="{{ defaults.get('physical_activity_frequency', '') }}" required>
       </div>
       <div class="form-group">
         <label for="coffee_intake_cups">Coffee (cups/day)</label>
-        <input type="number" step="0.5" name="coffee_intake_cups" id="coffee_intake_cups" min="0" max="10" value="{{ defaults.get('coffee_intake_cups', 2.0) }}">
+        <div class="field-hint">Average cups per day.</div>
+        <input type="number" step="0.5" name="coffee_intake_cups" id="coffee_intake_cups" min="0" max="10" value="{{ defaults.get('coffee_intake_cups', '') }}" required>
       </div>
       <div class="form-group">
         <label for="alcohol_intake_per_week">Alcohol (drinks/week)</label>
-        <input type="number" name="alcohol_intake_per_week" id="alcohol_intake_per_week" min="0" max="30" value="{{ defaults.get('alcohol_intake_per_week', 2) }}">
+        <div class="field-hint">Standard drinks per week.</div>
+        <input type="number" name="alcohol_intake_per_week" id="alcohol_intake_per_week" min="0" max="30" value="{{ defaults.get('alcohol_intake_per_week', '') }}" required>
       </div>
       <div class="form-group">
         <label for="screen_time_hr">Screen Time (hr/day)</label>
-        <input type="number" step="0.5" name="screen_time_hr" id="screen_time_hr" min="0" max="16" value="{{ defaults.get('screen_time_hr', 5.0) }}">
+        <div class="field-hint">Total screen hours per day.</div>
+        <input type="number" step="0.5" name="screen_time_hr" id="screen_time_hr" min="0" max="16" value="{{ defaults.get('screen_time_hr', '') }}" required>
       </div>
     </div>
 
@@ -88,15 +107,18 @@
     <div class="q-grid">
       <div class="form-group">
         <label for="outdoor_time_hr">Outdoor Time (hr/day)</label>
-        <input type="number" step="0.5" name="outdoor_time_hr" id="outdoor_time_hr" min="0" max="8" value="{{ defaults.get('outdoor_time_hr', 1.0) }}">
+        <div class="field-hint">Time spent outside each day.</div>
+        <input type="number" step="0.5" name="outdoor_time_hr" id="outdoor_time_hr" min="0" max="8" value="{{ defaults.get('outdoor_time_hr', '') }}" required>
       </div>
       <div class="form-group">
         <label for="social_interactions_count">Social Interactions (count/week)</label>
-        <input type="number" name="social_interactions_count" id="social_interactions_count" min="0" max="30" value="{{ defaults.get('social_interactions_count', 8) }}">
+        <div class="field-hint">Meaningful interactions per week.</div>
+        <input type="number" name="social_interactions_count" id="social_interactions_count" min="0" max="30" value="{{ defaults.get('social_interactions_count', '') }}" required>
       </div>
       <div class="form-group">
         <label for="screen_unlocks_per_day">Screen Unlocks / Day</label>
-        <input type="number" name="screen_unlocks_per_day" id="screen_unlocks_per_day" min="0" max="500" value="{{ defaults.get('screen_unlocks_per_day', 80) }}">
+        <div class="field-hint">Typical number of phone unlocks per day.</div>
+        <input type="number" name="screen_unlocks_per_day" id="screen_unlocks_per_day" min="0" max="500" value="{{ defaults.get('screen_unlocks_per_day', '') }}" required>
       </div>
     </div>
 
@@ -112,8 +134,9 @@
 {% if pred %}
 <div class="card" id="results">
   <h3>Results</h3>
+  <p class="text-muted">These results summarize your estimated stress risk and how confident the system is based on similar profiles. Use this as guidance, not a diagnosis.</p>
   <div class="grid results-grid">
-    <div class="card full-span" style="margin:0; height:100%;">
+    <div class="card full-span chart-card" style="margin:0; height:100%;">
       <h4>Stress Risk</h4>
       <div id="gauge" style="height:400px; max-width:520px; width:100%; margin:0 auto;"></div>
       {% if group == "G1" %}
@@ -123,8 +146,9 @@
     </div>
 
     {% if group == "G2" %}
-    <div class="card full-span" style="margin:0; height:100%;">
+    <div class="card full-span chart-card" style="margin:0; height:100%;">
       <h4>Uncertainty & Coverage</h4>
+      <p class="text-muted">Confidence reflects how tight the prediction band is. Coverage shows how similar your profile is to people the model has seen before.</p>
       {% set conf_percent = 100 - (confidence.width * 100 * 2) %}
       {% if conf_percent < 10 %}{% set conf_percent = 10 %}{% endif %}
       {% if conf_percent > 90 %}{% set conf_percent = 90 %}{% endif %}
@@ -157,7 +181,7 @@
     {% endif %}
 
     {% if group == "G2" %}
-    <div class="card full-span" style="margin:0; height:100%;">
+    <div class="card full-span chart-card" style="margin:0; height:100%;">
       <h4>Key Drivers</h4>
       <div id="drivers_bar" style="height:380px;"></div>
       <ul>
@@ -177,6 +201,20 @@
     <button type="submit">Generate / Refresh Plan</button>
   </form>
   {% if plan %}
+    <div class="subcard" style="margin:16px 0 20px;">
+      <div class="info-row">
+        <span class="chip">Survey</span>
+        <div>
+          <strong>Share quick feedback.</strong>
+          <div class="text-muted">Once you've reviewed your plan, please take the short survey so we can improve the experience.</div>
+          <div style="margin-top: 10px;">
+            <a href="{{ url_for('survey') }}" style="text-decoration: none;">
+              <button type="button" class="secondary">📝 Open Survey</button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
     <h4>Risk Factors</h4>
     <div style="margin-bottom: 18px;">
       {% for rf in plan.risk_factors %}
@@ -191,19 +229,21 @@
       {% endfor %}
     </ul>
 
-    <h4>Daily Routine</h4>
-    <div class="grid">
-      {% for day, acts in plan.daily_routine.items() %}
-        <div class="card" style="background:#fafbfd; margin-bottom:0;">
-          <strong>{{ day }}</strong>
-          <ul style="margin: 10px 0 0 0;">
-            {% for act in acts %}
-              <li><strong>{{ act.time }}</strong>: {{ act.activity }} ({{ act.duration }})</li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endfor %}
-    </div>
+    {% if plan.daily_routine %}
+      <h4>Daily Routine</h4>
+      <div class="grid">
+        {% for day, acts in plan.daily_routine.items() %}
+          <div class="card" style="background:#fafbfd; margin-bottom:0;">
+            <strong>{{ day }}</strong>
+            <ul style="margin: 10px 0 0 0;">
+              {% for act in acts %}
+                <li><strong>{{ act.time }}</strong>: {{ act.activity }}{% if act.duration %} ({{ act.duration }}){% endif %}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
 
     <!-- Survey Link Button -->
     <div style="margin-top: 28px; padding-top: 28px; border-top: 1px solid #e8ecf0;">
@@ -233,7 +273,7 @@
         {range: [66, 100], color: "#fee2e2"}
       ]
     }
-  }], {margin:{l:10,r:10,t:20,b:10}, font:{family:"Source Sans Pro"}});
+  }], {margin:{l:30,r:30,t:20,b:10}, font:{family:"Source Sans Pro"}});
 
   // Uncertainty breakdown (G2 only)
   if (data.uncertainty) {

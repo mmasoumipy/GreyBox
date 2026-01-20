@@ -16,29 +16,36 @@
         <div class="q-grid">
           <div class="form-group">
             <label for="q_demo_age">Age</label>
-            <input type="number" name="q_demo_age" id="q_demo_age" min="18" max="90" value="{{ defaults.get('q_demo_age', demographics.get('age', 30)) }}">
+            <div class="field-hint">In years.</div>
+            <input type="number" name="q_demo_age" id="q_demo_age" min="18" max="90" value="{{ defaults.get('q_demo_age', '') }}" required>
           </div>
           <div class="form-group">
             <label for="q_demo_gender">Gender</label>
-            <input type="text" name="q_demo_gender" id="q_demo_gender" value="{{ defaults.get('q_demo_gender', demographics.get('gender','')) }}">
+            <div class="field-hint">Self-described.</div>
+            <input type="text" name="q_demo_gender" id="q_demo_gender" value="{{ defaults.get('q_demo_gender', '') }}" required>
           </div>
           <div class="form-group">
             <label for="q_demo_occupation">Occupation</label>
-            <input type="text" name="q_demo_occupation" id="q_demo_occupation" value="{{ defaults.get('q_demo_occupation', demographics.get('occupation','')) }}">
+            <div class="field-hint">Current role or main occupation.</div>
+            <input type="text" name="q_demo_occupation" id="q_demo_occupation" value="{{ defaults.get('q_demo_occupation', '') }}" required>
           </div>
           <div class="form-group">
             <label for="q_demo_education">Highest education level</label>
-            <select name="q_demo_education" id="q_demo_education">
+            <div class="field-hint">Select the highest level completed.</div>
+            <select name="q_demo_education" id="q_demo_education" required>
+              <option value="" disabled {% if not defaults.get('q_demo_education') %}selected{% endif %}>Select...</option>
               {% for opt in education_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_demo_education', education_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+                <option value="{{ opt }}" {% if defaults.get('q_demo_education', '') == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="form-group">
             <label>Do you work in tech, data, or healthcare?</label>
-            <select name="q_demo_work_in_tech">
+            <div class="field-hint">Include data/healthcare-related roles.</div>
+            <select name="q_demo_work_in_tech" required>
+              <option value="" disabled {% if not defaults.get('q_demo_work_in_tech') %}selected{% endif %}>Select...</option>
               {% for opt in yes_no_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_demo_work_in_tech', 'No') == opt %}selected{% endif %}>{{ opt }}</option>
+                <option value="{{ opt }}" {% if defaults.get('q_demo_work_in_tech', '') == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
@@ -50,8 +57,9 @@
         <div class="q-grid slider-grid">
           <div class="form-group">
             <label for="q_health_stress_level">Self-rated current stress/mental health level (1 = very low, 5 = very high)</label>
+            <div class="field-hint">Higher means more stressed.</div>
             <div data-slider>
-              <input type="range" name="q_health_stress_level" id="q_health_stress_level" min="1" max="5" step="1" value="{{ defaults.get('q_health_stress_level', 3) }}">
+              <input type="range" name="q_health_stress_level" id="q_health_stress_level" min="1" max="5" step="1" value="{{ defaults.get('q_health_stress_level', 3) }}" required>
               <div class="slider-meta">
                 <span class="slider-edge-left">1</span>
                 <span class="slider-current"></span>
@@ -61,9 +69,11 @@
           </div>
           <div class="form-group">
             <label>Prior use of stress-assessment or mental-health tools</label>
-            <select name="q_health_prior_tool_use">
+            <div class="field-hint">Any apps, surveys, or assessments before.</div>
+            <select name="q_health_prior_tool_use" required>
+              <option value="" disabled {% if not defaults.get('q_health_prior_tool_use') %}selected{% endif %}>Select...</option>
               {% for opt in yes_no_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_health_prior_tool_use', 'No') == opt %}selected{% endif %}>{{ opt }}</option>
+                <option value="{{ opt }}" {% if defaults.get('q_health_prior_tool_use', '') == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
@@ -75,8 +85,9 @@
         <div class="q-grid slider-grid">
           <div class="form-group">
             <label for="q_ai_knowledge">Self-rated AI knowledge (1 = none, 5 = advanced)</label>
+            <div class="field-hint">How familiar you feel with AI.</div>
             <div data-slider>
-              <input type="range" name="q_ai_knowledge" id="q_ai_knowledge" min="1" max="5" step="1" value="{{ defaults.get('q_ai_knowledge', 3) }}">
+              <input type="range" name="q_ai_knowledge" id="q_ai_knowledge" min="1" max="5" step="1" value="{{ defaults.get('q_ai_knowledge', 3) }}" required>
               <div class="slider-meta">
                 <span class="slider-edge-left">1</span>
                 <span class="slider-current"></span>
@@ -86,9 +97,11 @@
           </div>
           <div class="form-group">
             <label for="q_ai_tool_frequency">Frequency of AI tool use</label>
-            <select name="q_ai_tool_frequency" id="q_ai_tool_frequency">
+            <div class="field-hint">How often you use AI tools.</div>
+            <select name="q_ai_tool_frequency" id="q_ai_tool_frequency" required>
+              <option value="" disabled {% if not defaults.get('q_ai_tool_frequency') %}selected{% endif %}>Select...</option>
               {% for opt in ai_tool_frequency_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_ai_tool_frequency', ai_tool_frequency_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+                <option value="{{ opt }}" {% if defaults.get('q_ai_tool_frequency', '') == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
@@ -101,8 +114,9 @@
           {% for key, label in likert_gaais %}
             <div class="form-group">
               <label>{{ label }}</label>
+              <div class="field-hint">1 = strongly disagree, 5 = strongly agree.</div>
               <div data-slider>
-                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}">
+                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}" required>
                 <div class="slider-meta">
                   <span class="slider-edge-left">1</span>
                   <span class="slider-current"></span>
@@ -119,9 +133,11 @@
         <div class="q-grid">
           <div class="form-group">
             <label for="q_health_app_frequency">Frequency of health app or wearable use</label>
-            <select name="q_health_app_frequency" id="q_health_app_frequency">
+            <div class="field-hint">How often you use health apps or wearables.</div>
+            <select name="q_health_app_frequency" id="q_health_app_frequency" required>
+              <option value="" disabled {% if not defaults.get('q_health_app_frequency') %}selected{% endif %}>Select...</option>
               {% for opt in health_app_frequency_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_health_app_frequency', health_app_frequency_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+                <option value="{{ opt }}" {% if defaults.get('q_health_app_frequency', '') == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
@@ -134,8 +150,9 @@
           {% for key, label in likert_core %}
             <div class="form-group">
               <label>{{ label }}</label>
+              <div class="field-hint">1 = strongly disagree, 5 = strongly agree.</div>
               <div data-slider>
-                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}">
+                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}" required>
                 <div class="slider-meta">
                   <span class="slider-edge-left">1</span>
                   <span class="slider-current"></span>
@@ -152,17 +169,21 @@
         <div class="q-grid">
           <div class="form-group">
             <label for="q_attention_check_feature">Attention Check: Which feature increased your risk the most?</label>
-            <select name="q_attention_check_feature" id="q_attention_check_feature">
+            <div class="field-hint">Pick the strongest driver you remember.</div>
+            <select name="q_attention_check_feature" id="q_attention_check_feature" required>
+              <option value="" disabled {% if not defaults.get('q_attention_check_feature') %}selected{% endif %}>Select...</option>
               {% for opt in driver_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_attention_check_feature', driver_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+                <option value="{{ opt }}" {% if defaults.get('q_attention_check_feature', '') == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
           <div class="form-group">
             <label for="q_system_preference">Which version of the system do you prefer: Basic or Advanced?</label>
-            <select name="q_system_preference" id="q_system_preference">
+            <div class="field-hint">Choose the interface you preferred overall.</div>
+            <select name="q_system_preference" id="q_system_preference" required>
+              <option value="" disabled {% if not defaults.get('q_system_preference') %}selected{% endif %}>Select...</option>
               {% for opt in system_preference_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_system_preference', system_preference_options[0]) == opt %}selected{% endif %}>{{ opt }}</option>
+                <option value="{{ opt }}" {% if defaults.get('q_system_preference', '') == opt %}selected{% endif %}>{{ opt }}</option>
               {% endfor %}
             </select>
           </div>
@@ -174,15 +195,18 @@
         <div style="display: grid; gap: 20px;">
           <div class="form-group">
             <label for="q_open_most_useful">What part of the assessment was most useful?</label>
-            <textarea name="q_open_most_useful" id="q_open_most_useful" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_most_useful', '') }}</textarea>
+            <div class="field-hint">One or two sentences is enough.</div>
+            <textarea name="q_open_most_useful" id="q_open_most_useful" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_most_useful', '') }}</textarea>
           </div>
           <div class="form-group">
             <label for="q_open_unclear">What part was unclear?</label>
-            <textarea name="q_open_unclear" id="q_open_unclear" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_unclear', '') }}</textarea>
+            <div class="field-hint">Share anything confusing or missing.</div>
+            <textarea name="q_open_unclear" id="q_open_unclear" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_unclear', '') }}</textarea>
           </div>
           <div class="form-group">
             <label for="q_open_suggestions">Do you have suggestions for improvement?</label>
-            <textarea name="q_open_suggestions" id="q_open_suggestions" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_suggestions', '') }}</textarea>
+            <div class="field-hint">Optional, brief suggestions welcome.</div>
+            <textarea name="q_open_suggestions" id="q_open_suggestions" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_suggestions', '') }}</textarea>
           </div>
         </div>
       </div>
@@ -191,15 +215,16 @@
         <div class="section-block">
           <div class="section-title">Group 2 Only – Uncertainty & Explanations</div>
           <div class="q-grid slider-grid">
-            {% for key, label in likert_g2 %}
-              <div class="form-group">
-                <label>{{ label }}</label>
-                <div data-slider>
-                  <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}">
-                  <div class="slider-meta">
-                    <span class="slider-edge-left">1</span>
-                    <span class="slider-current"></span>
-                    <span class="slider-edge-right">5</span>
+          {% for key, label in likert_g2 %}
+            <div class="form-group">
+              <label>{{ label }}</label>
+              <div class="field-hint">1 = strongly disagree, 5 = strongly agree.</div>
+              <div data-slider>
+                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}" required>
+                <div class="slider-meta">
+                  <span class="slider-edge-left">1</span>
+                  <span class="slider-current"></span>
+                  <span class="slider-edge-right">5</span>
                   </div>
                 </div>
               </div>
@@ -208,7 +233,8 @@
           <div style="display: grid; gap: 20px; grid-template-columns: 1fr;">
             <div class="form-group">
               <label for="q_open_uncertainty_impact">Did the uncertainty or explanations change how you interpreted the results?</label>
-              <textarea name="q_open_uncertainty_impact" id="q_open_uncertainty_impact" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_uncertainty_impact', '') }}</textarea>
+              <div class="field-hint">Briefly describe any change in interpretation.</div>
+              <textarea name="q_open_uncertainty_impact" id="q_open_uncertainty_impact" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_uncertainty_impact', '') }}</textarea>
             </div>
           </div>
         </div>

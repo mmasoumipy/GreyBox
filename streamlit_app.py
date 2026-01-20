@@ -1392,6 +1392,7 @@ if st.session_state["current_page"] == "Assessment":
             occ_choices = arts.cat_categories.get("occupation", ["engineer", "nurse", "student"])
             if not occ_choices:
                 occ_choices = ["engineer", "nurse", "student"]
+            occ_choices = [opt for opt in occ_choices if str(opt).lower() != "professor"]
             occupation = st.selectbox("Occupation", occ_choices)
         with col4:
             work_hours = st.number_input("Work Hours/Week", 0, 80, 40)

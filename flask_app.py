@@ -1,5 +1,9 @@
 import os
 import json
+import os
+import socket
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -395,92 +399,106 @@ def generate_stress_management_plan(user_data: Dict, prediction: Dict) -> Dict:
         stress_factors = ["maintenance", "prevention"]
 
     plan = {"risk_factors": stress_factors, "daily_routine": {}}
-    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
+    def add_activity(day: str, time: str, activity: str, duration: str = "") -> None:
+        plan["daily_routine"].setdefault(day, []).append({
+            "time": time,
+            "activity": activity,
+            "duration": duration,
+        })
+
+    def generate_daily_routine_with_openai() -> Dict[str, List[Dict[str, str]]]:
+        api_key = os.getenv("OPENAI_Grey_API_KEY")
+        if not api_key:
+            return {}
+        prompt = {
+            "role": "system",
+            "content": (
+                "You are a wellness coach. Generate a concise daily plan for Monday-Sunday based on the user's stress factors. "
+                "Return JSON only, with a top-level key 'daily_routine' as an object with keys Monday-Sunday. "
+                "Each day is a list of items, each item must include: time, activity, duration (strings). "
+                "Keep it practical and non-medical."
+            ),
+        }
+        user_msg = {
+            "role": "user",
+            "content": json.dumps({
+                "stress_factors": stress_factors,
+                "user_data": user_data,
+                "constraints": [
+                    "Include movement options like yoga, pilates, or stretching at least 3x/week.",
+                    "Use realistic times (morning, lunch, evening).",
+                    "Limit to 3-5 items per day.",
+                ],
+            }),
+        }
+        payload = {
+            "model": "gpt-4o-mini",
+            "temperature": 0.4,
+            "messages": [prompt, user_msg],
+        }
+        req = urllib.request.Request(
+            "https://api.openai.com/v1/chat/completions",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {api_key}",
+            },
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                body = resp.read().decode("utf-8")
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, socket.timeout):
+            return {}
+
+        try:
+            result = json.loads(body)
+            content = result["choices"][0]["message"]["content"].strip()
+            if content.startswith("```"):
+                content = content.strip("`")
+                if content.startswith("json"):
+                    content = content[4:].strip()
+            parsed = json.loads(content)
+            routine = parsed.get("daily_routine", {})
+            if isinstance(routine, dict):
+                cleaned = {}
+                for day, items in routine.items():
+                    if not isinstance(items, list):
+                        continue
+                    cleaned_items = []
+                    for item in items:
+                        if not isinstance(item, dict):
+                            continue
+                        cleaned_items.append({
+                            "time": str(item.get("time", "")).strip(),
+                            "activity": str(item.get("activity", "")).strip(),
+                            "duration": str(item.get("duration", "")).strip(),
+                        })
+                    cleaned[day] = [i for i in cleaned_items if i["activity"]]
+                return cleaned
+        except (KeyError, ValueError, TypeError, json.JSONDecodeError):
+            return {}
+        return {}
+
+    openai_routine = generate_daily_routine_with_openai()
+    if openai_routine:
+        plan["daily_routine"] = openai_routine
+        return plan
+
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     for i, day in enumerate(days):
-        activities = []
-        activities.append({
-            "time": "6:30-7:00 AM",
-            "activity": "Wake up routine - hydrate, light stretching or yoga",
-            "category": "Morning",
-            "duration": "30 min"
-        })
-        activities.append({
-            "time": "7:00-8:00 AM",
-            "activity": "Healthy breakfast - avoid excessive coffee, plan priorities",
-            "category": "Breakfast",
-            "duration": "60 min"
-        })
-        if "insufficient_breaks" in stress_factors or "high_workload" in stress_factors:
-            activities.append({
-                "time": "9:30 AM",
-                "activity": "First break - 5 min breathing exercise or walk",
-                "category": "Break",
-                "duration": "5 min"
-            })
-            activities.append({
-                "time": "12:00 PM",
-                "activity": "Lunch break - step outside or change scenery",
-                "category": "Lunch",
-                "duration": "30 min"
-            })
-            activities.append({
-                "time": "3:00 PM",
-                "activity": "Afternoon break - hydration + 5 min movement",
-                "category": "Break",
-                "duration": "5 min"
-            })
+        add_activity(day, "7:00 AM", "Morning reset - hydrate and plan top priorities", "10 min")
+        add_activity(day, "12:30 PM", "Midday break - step outside or short walk", "10 min")
         if "low_exercise" in stress_factors:
-            if i < 5:
-                activities.append({
-                    "time": "5:30 PM" if i % 2 == 0 else "6:30 AM (before work)",
-                    "activity": "Moderate exercise - 30-45 min (walk, gym, cycling, yoga)",
-                    "category": "Exercise",
-                    "duration": "45 min"
-                })
-            else:
-                activities.append({
-                    "time": "9:00 AM",
-                    "activity": "Longer activity - 60 min outdoor activity or sports",
-                    "category": "Exercise",
-                    "duration": "60 min"
-                })
-        if "low_social_contact" in stress_factors:
-            if i in [2, 5]:
-                activities.append({
-                    "time": "7:00 PM",
-                    "activity": f"Social time - {'meet friend for coffee' if i == 2 else 'family dinner or video call'}",
-                    "category": "Social",
-                    "duration": "60 min"
-                })
-        if "high_caffeine" in stress_factors:
-            activities.append({
-                "time": "Before 2 PM",
-                "activity": "Limit coffee to 1-2 cups in morning (cut off by 2 PM)",
-                "category": "Nutrition",
-                "duration": "Ongoing"
-            })
-        if "excessive_screen_time" in stress_factors:
-            activities.append({
-                "time": "8:30-9:00 PM",
-                "activity": "Digital sunset - put phone away, reduce screen exposure",
-                "category": "Digital Wellness",
-                "duration": "30 min"
-            })
+            if day in ["Monday", "Wednesday", "Friday"]:
+                add_activity(day, "6:00 PM", "Movement - yoga/pilates/stretching", "30-45 min")
+        if "high_workload" in stress_factors or "insufficient_breaks" in stress_factors:
+            add_activity(day, "3:00 PM", "Micro-break - breathing or stretch", "5 min")
+        if day in ["Saturday", "Sunday"]:
+            add_activity(day, "10:00 AM", "Longer outdoor activity", "45-60 min")
         if "poor_sleep_quality" in stress_factors or "insufficient_sleep" in stress_factors:
-            activities.append({
-                "time": "9:00-10:00 PM",
-                "activity": "Wind-down routine - read, light stretching, meditation",
-                "category": "Evening",
-                "duration": "60 min"
-            })
-            activities.append({
-                "time": "10:00 PM",
-                "activity": "Consistent bedtime - aim for 7-8 hours sleep",
-                "category": "Sleep",
-                "duration": "N/A"
-            })
-        plan["daily_routine"][day] = activities
+            add_activity(day, "9:30 PM", "Wind-down routine", "30-60 min")
 
     plan["weekly_goals"] = []
     if "high_stress_events" in stress_factors:
@@ -498,8 +516,8 @@ def generate_stress_management_plan(user_data: Dict, prediction: Dict) -> Dict:
     if "low_exercise" in stress_factors:
         plan["weekly_goals"].append({
             "goal": "Physical activity",
-            "target": "150 min moderate activity",
-            "tips": ["Brisk walking", "Yoga", "Cycling", "Team sports"]
+            "target": "3x per week (20-45 min)",
+            "tips": ["Brisk walking", "Yoga", "Pilates", "Cycling", "Team sports"]
         })
     if "high_caffeine" in stress_factors:
         plan["weekly_goals"].append({
@@ -766,6 +784,9 @@ def assessment():
     group = session.get("group", "G1")
     defaults = session.get("form_defaults", {})
     if request.method == "POST":
+        gender_choices = ARTS.cat_categories.get("gender", ["male", "female", "other"]) or ["male", "female", "other"]
+        occupation_choices = ARTS.cat_categories.get("occupation", ["engineer", "nurse", "student"]) or ["engineer", "nurse", "student"]
+        occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "professor"]
         action = request.form.get("action")
         if action == "plan":
             pred = session.get("current_prediction")
@@ -783,6 +804,48 @@ def assessment():
                 "group": group
             })
             return redirect(url_for("assessment") + "#plan")
+
+        required_fields = {
+            "age": "Age",
+            "gender": "Gender",
+            "occupation": "Occupation",
+            "work_hours_per_week": "Work Hours / Week",
+            "job_satisfaction": "Job Satisfaction",
+            "workload_rating": "Workload Rating",
+            "stress_event_count_last_week": "Stress Events (Last Week)",
+            "breaks_per_workday": "Breaks per Workday",
+            "commute_time_min": "Commute Time",
+            "outdoor_time_hr": "Outdoor Time",
+            "sleep_quality_rating": "Sleep Quality",
+            "sleep_duration_hr": "Sleep Duration",
+            "physical_activity_frequency": "Physical Activity",
+            "coffee_intake_cups": "Coffee",
+            "alcohol_intake_per_week": "Alcohol",
+            "screen_time_hr": "Screen Time",
+            "social_interactions_count": "Social Interactions",
+            "screen_unlocks_per_day": "Screen Unlocks / Day",
+        }
+        missing = [label for key, label in required_fields.items() if not request.form.get(key)]
+        if missing:
+            for label in missing:
+                flash(f"{label} is required.", "error")
+            defaults = request.form.to_dict()
+            return render_template(
+                "assessment.html",
+                group=group,
+                gender_choices=gender_choices,
+                occupation_choices=occupation_choices,
+                defaults=defaults,
+                user_id=session.get("user_id"),
+                pred=session.get("current_prediction"),
+                risk=None,
+                confidence=None,
+                coverage=None,
+                drivers=[],
+                driver_descriptions=[],
+                chart_data=None,
+                plan=session.get("stress_plan"),
+            )
 
         age = parse_form_value("age", int, 30)
         gender = request.form.get("gender", "female")
@@ -845,6 +908,7 @@ def assessment():
 
     gender_choices = ARTS.cat_categories.get("gender", ["male", "female", "other"]) or ["male", "female", "other"]
     occupation_choices = ARTS.cat_categories.get("occupation", ["engineer", "nurse", "student"]) or ["engineer", "nurse", "student"]
+    occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "professor"]
     pred = session.get("current_prediction")
     user_data = session.get("current_user")
     plan = session.get("stress_plan")
@@ -960,6 +1024,24 @@ def survey_step(step: int):
         return redirect(url_for("survey_step", step=1))
 
     survey_form = session.get("survey_form", {})
+    validation_labels = {
+        "q_demo_age": "Age",
+        "q_demo_gender": "Gender",
+        "q_demo_occupation": "Occupation",
+        "q_demo_education": "Highest education level",
+        "q_demo_work_in_tech": "Work in tech/data/healthcare",
+        "q_health_stress_level": "Self-rated stress level",
+        "q_health_prior_tool_use": "Prior tool use",
+        "q_ai_knowledge": "AI knowledge",
+        "q_ai_tool_frequency": "AI tool use frequency",
+        "q_health_app_frequency": "Health app/wearable frequency",
+        "q_attention_check_feature": "Attention check",
+        "q_system_preference": "System preference",
+        "q_open_most_useful": "Most useful part",
+        "q_open_unclear": "Unclear part",
+        "q_open_suggestions": "Suggestions",
+        "q_open_uncertainty_impact": "Uncertainty impact",
+    }
 
     def grab_int(name: str, default: int = 3) -> int:
         try:
@@ -992,6 +1074,37 @@ def survey_step(step: int):
     }
 
     if request.method == "POST":
+        required_fields = list(step_fields.get(step, []))
+        if step == 1:
+            required_fields.extend([key for key, _ in LIKERT_GAAIS])
+        if step == 2:
+            required_fields.extend([key for key, _ in LIKERT_CORE])
+        if step == 3 and group == "G2":
+            required_fields.extend([key for key, _ in LIKERT_G2_UNCERTAINTY])
+
+        missing = [validation_labels.get(field, field) for field in required_fields if not request.form.get(field)]
+        if missing:
+            for label in missing:
+                flash(f"{label} is required.", "error")
+            defaults = {**survey_form, **request.form.to_dict()}
+            return render_template(
+                "survey.html",
+                group=group,
+                driver_options=driver_options,
+                likert_core=LIKERT_CORE,
+                likert_gaais=LIKERT_GAAIS,
+                likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
+                demographics=session.get("current_demographics") or {},
+                user_id=session.get("user_id"),
+                step=step,
+                total_steps=total_steps,
+                defaults=defaults,
+                education_options=EDUCATION_OPTIONS,
+                yes_no_options=YES_NO_OPTIONS,
+                ai_tool_frequency_options=AI_TOOL_FREQUENCY_OPTIONS,
+                health_app_frequency_options=HEALTH_APP_FREQUENCY_OPTIONS,
+                system_preference_options=SYSTEM_PREFERENCE_OPTIONS,
+            )
         for field in step_fields.get(step, []):
             if field in ["q_demo_gender", "q_demo_occupation", "q_open_most_useful", "q_open_unclear", "q_open_suggestions", "q_open_uncertainty_impact"]:
                 survey_form[field] = request.form.get(field, "")

@@ -417,12 +417,28 @@
     li { margin: 8px 0; }
     
     /* Helpers */
-    .text-muted { color: var(--muted); font-size: 13px; }
+    .text-muted { color: var(--muted); font-size: 13px;}
+    .text-text { font-size: 13px; color: var(--text);}
+    .field-hint { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
     .mb-2 { margin-bottom: 16px; }
     .mt-3 { margin-top: 24px; }
     .subcard { background: #f7f9ff; border: 1px solid #e3e9f7; border-radius: 12px; padding: 12px 14px; }
     .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--primary-light); color: var(--primary); font-weight: 600; font-size: 12px; border: 1px solid #d4e3ff; }
     .info-row { display: flex; gap: 10px; align-items: flex-start; }
+    .chart-card { overflow: visible; }
+    .chart-card .plot-container,
+    .chart-card .js-plotly-plot { overflow: visible !important; }
     
     /* Responsive - 2 columns on tablet */
     @media (max-width: 1024px) {
