@@ -2018,11 +2018,17 @@ if st.session_state.get("current_page") == "Survey":
                 ["Never", "Occasionally", "Weekly", "Daily"],
                 key="q_ai_tool_frequency"
             )
-            st.markdown("**GAAIS – Short Version (Validated attitude items)**")
-            responses["q_gaais_beneficial"] = likert("AI technologies are generally beneficial for society.", "q_gaais_beneficial")
-            responses["q_gaais_trust_decisions"] = likert("AI systems can usually be trusted to make good decisions.", "q_gaais_trust_decisions")
-            responses["q_gaais_bias_concern"] = likert("I am concerned about AI making incorrect or biased decisions. (reverse-coded)", "q_gaais_bias_concern")
-            responses["q_gaais_comfort_using"] = likert("I feel comfortable using AI tools in my daily life.", "q_gaais_comfort_using")
+            st.markdown("**GAAIS-10 (Validated attitude items)**")
+            responses["q_gaais_interest"] = likert("I am interested in using artificial intelligence systems in my daily life.", "q_gaais_interest")
+            responses["q_gaais_impact"] = likert("Artificial Intelligence can have positive impacts on people's wellbeing.", "q_gaais_impact")
+            responses["q_gaais_excitement"] = likert("Artificial Intelligence is exciting.", "q_gaais_excitement")
+            responses["q_gaais_benefit"] = likert("Much of society will benefit from a future full of Artificial Intelligence.", "q_gaais_benefit")
+            responses["q_gaais_employment"] = likert("I would like to use artificial intelligence in my own job.", "q_gaais_employment")
+            responses["q_gaais_sinister"] = likert("I find artificial intelligence sinister.", "q_gaais_sinister")
+            responses["q_gaais_control"] = likert("Artificial Intelligence might take control of people.", "q_gaais_control")
+            responses["q_gaais_danger"] = likert("I think artificial intelligence is dangerous.", "q_gaais_danger")
+            responses["q_gaais_discomfort"] = likert("I shiver with discomfort when I think about future uses of artificial intelligence.", "q_gaais_discomfort")
+            responses["q_gaais_suffering"] = likert("People like me will suffer if artificial intelligence is used more and more.", "q_gaais_suffering")
 
             st.markdown("**Health App Experience**")
             responses["q_health_app_frequency"] = st.selectbox(

@@ -38,10 +38,16 @@ AGG_METRICS = {
     "gaais_attitudes": {
         "label": "GAAIS Attitudes",
         "questions": [
-            "q_gaais_beneficial",
-            "q_gaais_trust_decisions",
-            "q_gaais_bias_concern",
-            "q_gaais_comfort_using",
+            "q_gaais_interest",
+            "q_gaais_impact",
+            "q_gaais_excitement",
+            "q_gaais_benefit",
+            "q_gaais_employment",
+            "q_gaais_sinister",
+            "q_gaais_control",
+            "q_gaais_danger",
+            "q_gaais_discomfort",
+            "q_gaais_suffering",
         ],
     },
     "uncertainty_transparency": {

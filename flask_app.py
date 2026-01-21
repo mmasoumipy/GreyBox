@@ -973,10 +973,16 @@ LIKERT_CORE: List[Tuple[str, str]] = [
 ]
 
 LIKERT_GAAIS: List[Tuple[str, str]] = [
-    ("q_gaais_beneficial", "AI technologies are generally beneficial for society."),
-    ("q_gaais_trust_decisions", "AI systems can usually be trusted to make good decisions."),
-    ("q_gaais_bias_concern", "I am concerned about AI making incorrect or biased decisions. (reverse-coded)"),
-    ("q_gaais_comfort_using", "I feel comfortable using AI tools in my daily life."),
+    ("q_gaais_interest", "I am interested in using artificial intelligence systems in my daily life."),
+    ("q_gaais_impact", "Artificial Intelligence can have positive impacts on people's wellbeing."),
+    ("q_gaais_excitement", "Artificial Intelligence is exciting."),
+    ("q_gaais_benefit", "Much of society will benefit from a future full of Artificial Intelligence."),
+    ("q_gaais_employment", "I would like to use artificial intelligence in my own job."),
+    ("q_gaais_sinister", "I find artificial intelligence sinister."),
+    ("q_gaais_control", "Artificial Intelligence might take control of people."),
+    ("q_gaais_danger", "I think artificial intelligence is dangerous."),
+    ("q_gaais_discomfort", "I shiver with discomfort when I think about future uses of artificial intelligence."),
+    ("q_gaais_suffering", "People like me will suffer if artificial intelligence is used more and more."),
 ]
 
 LIKERT_G2_UNCERTAINTY: List[Tuple[str, str]] = [
@@ -1148,10 +1154,8 @@ def survey_step(step: int):
 
             responses["q_ai_knowledge"] = to_int("q_ai_knowledge", 3)
             responses["q_ai_tool_frequency"] = survey_form.get("q_ai_tool_frequency", "Never")
-            responses["q_gaais_beneficial"] = to_int("q_gaais_beneficial", 3)
-            responses["q_gaais_trust_decisions"] = to_int("q_gaais_trust_decisions", 3)
-            responses["q_gaais_bias_concern"] = to_int("q_gaais_bias_concern", 3)
-            responses["q_gaais_comfort_using"] = to_int("q_gaais_comfort_using", 3)
+            for key, _ in LIKERT_GAAIS:
+                responses[key] = to_int(key, 3)
             responses["q_health_app_frequency"] = survey_form.get("q_health_app_frequency", "Never")
 
             for key, _ in LIKERT_CORE:
