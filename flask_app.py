@@ -1187,8 +1187,7 @@ def survey_step(step: int):
             if prev_user:
                 ACTIVE_LOGS.pop(prev_user, None)
             session.clear()
-            flash("Thank you! Session saved. Next participant has been assigned.")
-            return redirect(url_for("assessment"))
+            return redirect(url_for("survey_thanks"))
 
     return render_template(
         "survey.html",
@@ -1208,6 +1207,10 @@ def survey_step(step: int):
         health_app_frequency_options=HEALTH_APP_FREQUENCY_OPTIONS,
         system_preference_options=SYSTEM_PREFERENCE_OPTIONS,
     )
+
+@app.route("/survey/thanks", methods=["GET"])
+def survey_thanks():
+    return render_template("survey_thanks.html")
 
 # ----------------------------
 # Run

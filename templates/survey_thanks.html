@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <h2 style="margin-top:0;">Thank You</h2>
+  <p class="text-text">Thank you for participating in this survey. Your feedback helps us improve the experience.</p>
+  <div style="margin-top:18px;">
+    <a href="{{ url_for('assessment') }}" style="text-decoration: none;">
+      <button type="button" class="secondary">Start a New Assessment</button>
+    </a>
+  </div>
+</div>
+{% endblock %}
