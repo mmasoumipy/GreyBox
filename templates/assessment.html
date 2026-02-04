@@ -225,7 +225,12 @@
 
     {% if plan.daily_routine %}
       <p class="text-muted" style="margin-top: 26px;">If you want to see the full plan, click below.</p>
-      <button type="button" id="daily-routine-toggle" >Show Daily Routine</button>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button type="button" id="daily-routine-toggle">Show Daily Routine</button>
+        <a href="{{ url_for('plan_pdf') }}" style="text-decoration: none;">
+          <button type="button" class="secondary">Download PDF</button>
+        </a>
+      </div>
       <div id="daily-routine-content" class="grid" style="display:none; margin-top: 14px;">
         {% for day, acts in plan.daily_routine.items() %}
           <div class="card" style="background:#fafbfd; margin-bottom:0;">

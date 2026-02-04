@@ -1,7 +1,8 @@
-import os
+import io
 import json
 import os
 import socket
+import textwrap
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -13,7 +14,10 @@ import numpy as np
 import pandas as pd
 import lightgbm as lgb
 import shap
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.pdfgen import canvas
 import psycopg2
 import psycopg2.extras
 from sklearn.calibration import CalibratedClassifierCV
@@ -1276,6 +1280,112 @@ def survey_step(step: int):
         ai_tool_frequency_options=AI_TOOL_FREQUENCY_OPTIONS,
         health_app_frequency_options=HEALTH_APP_FREQUENCY_OPTIONS,
         system_preference_options=SYSTEM_PREFERENCE_OPTIONS,
+    )
+
+@app.route("/plan/pdf", methods=["GET"])
+def plan_pdf():
+    plan = session.get("stress_plan")
+    if not plan:
+        flash("Generate your personalized plan before downloading the PDF.", "error")
+        return redirect(url_for("assessment") + "#plan")
+
+    buffer = io.BytesIO()
+    page_width, page_height = letter
+    margin = 0.75 * inch
+    y = page_height - margin
+    c = canvas.Canvas(buffer, pagesize=letter)
+
+    def new_page() -> None:
+        nonlocal y
+        c.showPage()
+        y = page_height - margin
+
+    def ensure_space(needed: float) -> None:
+        nonlocal y
+        if y - needed < margin:
+            new_page()
+
+    def draw_heading(text: str, size: int = 18) -> None:
+        nonlocal y
+        ensure_space(size + 10)
+        c.setFont("Helvetica-Bold", size)
+        c.drawString(margin, y, text)
+        y -= size + 6
+
+    def draw_subheading(text: str, size: int = 12) -> None:
+        nonlocal y
+        ensure_space(size + 8)
+        c.setFont("Helvetica-Bold", size)
+        c.drawString(margin, y, text)
+        y -= size + 6
+
+    def draw_paragraph(text: str, size: int = 11, leading: int = 14) -> None:
+        nonlocal y
+        c.setFont("Helvetica", size)
+        for line in textwrap.wrap(text, width=95):
+            ensure_space(leading)
+            c.drawString(margin, y, line)
+            y -= leading
+        y -= 4
+
+    def draw_bullets(lines: List[str], size: int = 11, leading: int = 14) -> None:
+        nonlocal y
+        c.setFont("Helvetica", size)
+        for line in lines:
+            for wrapped in textwrap.wrap(line, width=90):
+                ensure_space(leading)
+                c.drawString(margin + 10, y, f"• {wrapped}")
+                y -= leading
+        y -= 4
+
+    def get_attr(obj, name: str, default=""):
+        if isinstance(obj, dict):
+            return obj.get(name, default)
+        return getattr(obj, name, default)
+
+    draw_heading("Personalized Stress Plan")
+    draw_paragraph(f"Generated on {datetime.utcnow().strftime('%B %d, %Y')}.")
+
+    risk_factors = plan.get("risk_factors", [])
+    if risk_factors:
+        draw_subheading("Risk Factors")
+        draw_bullets([str(rf).replace("_", " ").title() for rf in risk_factors])
+
+    weekly_goals = plan.get("weekly_goals", [])
+    if weekly_goals:
+        draw_subheading("Weekly Goals")
+        for goal in weekly_goals:
+            title = str(get_attr(goal, "goal", "")).title()
+            target = str(get_attr(goal, "target", "")).strip()
+            tips = get_attr(goal, "tips", [])
+            tips_text = ", ".join(tips) if isinstance(tips, list) else str(tips)
+            if title:
+                draw_paragraph(f"{title}: {target}" if target else title)
+            if tips_text:
+                draw_bullets([f"Suggestions: {tips_text}"])
+
+    daily_routine = plan.get("daily_routine", {})
+    if daily_routine:
+        draw_subheading("Daily Routine")
+        for day, activities in daily_routine.items():
+            draw_paragraph(str(day))
+            for act in activities or []:
+                time = get_attr(act, "time", "")
+                activity = get_attr(act, "activity", "")
+                duration = get_attr(act, "duration", "")
+                detail = f"{time} – {activity}".strip(" –")
+                if duration:
+                    detail = f"{detail} ({duration})"
+                draw_bullets([detail] if detail else [])
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype="application/pdf",
+        as_attachment=True,
+        download_name="personalized_plan.pdf",
     )
 
 @app.route("/survey/thanks", methods=["GET"])
