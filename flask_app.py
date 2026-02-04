@@ -825,6 +825,24 @@ def assessment():
             "social_interactions_count": "Social Interactions",
             "screen_unlocks_per_day": "Screen Unlocks / Day",
         }
+        numeric_constraints = {
+            "age": (int, 18, 90),
+            "work_hours_per_week": (int, 0, 120),
+            "job_satisfaction": (int, 1, 10),
+            "workload_rating": (int, 1, 10),
+            "stress_event_count_last_week": (int, 0, 50),
+            "breaks_per_workday": (int, 0, 20),
+            "commute_time_min": (int, 0, 300),
+            "outdoor_time_hr": (float, 0, 12),
+            "sleep_quality_rating": (int, 1, 10),
+            "sleep_duration_hr": (float, 0, 16),
+            "physical_activity_frequency": (int, 0, 21),
+            "coffee_intake_cups": (float, 0, 15),
+            "alcohol_intake_per_week": (int, 0, 40),
+            "screen_time_hr": (float, 0, 24),
+            "social_interactions_count": (int, 0, 50),
+            "screen_unlocks_per_day": (int, 0, 500),
+        }
         missing = [label for key, label in required_fields.items() if not request.form.get(key)]
         if missing:
             for label in missing:
@@ -847,24 +865,63 @@ def assessment():
                 plan=session.get("stress_plan"),
             )
 
-        age = parse_form_value("age", int, 30)
+        numeric_errors = []
+        parsed_values = {}
+        for name, (cast_fn, min_value, max_value) in numeric_constraints.items():
+            raw = request.form.get(name, "")
+            try:
+                value = cast_fn(raw)
+            except Exception:
+                numeric_errors.append(
+                    f"{required_fields[name]} must be a number between {min_value} and {max_value}."
+                )
+                continue
+            if value < min_value or value > max_value:
+                numeric_errors.append(
+                    f"{required_fields[name]} must be between {min_value} and {max_value}."
+                )
+                continue
+            parsed_values[name] = value
+
+        if numeric_errors:
+            for message in numeric_errors:
+                flash(message, "error")
+            defaults = request.form.to_dict()
+            return render_template(
+                "assessment.html",
+                group=group,
+                gender_choices=gender_choices,
+                occupation_choices=occupation_choices,
+                defaults=defaults,
+                user_id=session.get("user_id"),
+                pred=session.get("current_prediction"),
+                risk=None,
+                confidence=None,
+                coverage=None,
+                drivers=[],
+                driver_descriptions=[],
+                chart_data=None,
+                plan=session.get("stress_plan"),
+            )
+
+        age = parsed_values["age"]
         gender = request.form.get("gender", "female")
         occupation = request.form.get("occupation", "engineer")
-        work_hours = parse_form_value("work_hours_per_week", int, 40)
-        job_satisfaction = parse_form_value("job_satisfaction", int, 5)
-        workload = parse_form_value("workload_rating", int, 5)
-        stress_events = parse_form_value("stress_event_count_last_week", int, 2)
-        breaks = parse_form_value("breaks_per_workday", int, 3)
-        commute = parse_form_value("commute_time_min", int, 30)
-        outdoor_time = parse_form_value("outdoor_time_hr", float, 1.0)
-        sleep_quality = parse_form_value("sleep_quality_rating", int, 7)
-        sleep_duration = parse_form_value("sleep_duration_hr", float, 7.0)
-        exercise = parse_form_value("physical_activity_frequency", int, 3)
-        coffee = parse_form_value("coffee_intake_cups", float, 2.0)
-        alcohol = parse_form_value("alcohol_intake_per_week", int, 2)
-        screen_time = parse_form_value("screen_time_hr", float, 5.0)
-        social = parse_form_value("social_interactions_count", int, 8)
-        screen_unlocks = parse_form_value("screen_unlocks_per_day", int, 80)
+        work_hours = parsed_values["work_hours_per_week"]
+        job_satisfaction = parsed_values["job_satisfaction"]
+        workload = parsed_values["workload_rating"]
+        stress_events = parsed_values["stress_event_count_last_week"]
+        breaks = parsed_values["breaks_per_workday"]
+        commute = parsed_values["commute_time_min"]
+        outdoor_time = parsed_values["outdoor_time_hr"]
+        sleep_quality = parsed_values["sleep_quality_rating"]
+        sleep_duration = parsed_values["sleep_duration_hr"]
+        exercise = parsed_values["physical_activity_frequency"]
+        coffee = parsed_values["coffee_intake_cups"]
+        alcohol = parsed_values["alcohol_intake_per_week"]
+        screen_time = parsed_values["screen_time_hr"]
+        social = parsed_values["social_interactions_count"]
+        screen_unlocks = parsed_values["screen_unlocks_per_day"]
 
         user_data = {
             "age": age,
