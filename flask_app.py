@@ -1132,11 +1132,27 @@ def survey_step(step: int):
             "q_open_most_useful",
             "q_open_unclear",
             "q_open_suggestions",
-            "q_open_uncertainty_impact",
         ],
     }
+    if group == "G2":
+        step_fields[3].append("q_open_uncertainty_impact")
 
     if request.method == "POST":
+        if "back" in request.form:
+            for field in step_fields.get(step, []):
+                survey_form[field] = request.form.get(field, "")
+            if step == 1:
+                for key, _ in LIKERT_GAAIS:
+                    survey_form[key] = request.form.get(key, "")
+            if step == 2:
+                for key, _ in LIKERT_CORE:
+                    survey_form[key] = request.form.get(key, "")
+            if step == 3 and group == "G2":
+                for key, _ in LIKERT_G2_UNCERTAINTY:
+                    survey_form[key] = request.form.get(key, "")
+            session["survey_form"] = survey_form
+            return redirect(url_for("survey_step", step=max(1, step - 1)))
+
         required_fields = list(step_fields.get(step, []))
         if step == 1:
             required_fields.extend([key for key, _ in LIKERT_GAAIS])
@@ -1186,9 +1202,6 @@ def survey_step(step: int):
                 survey_form[key] = request.form.get(key, "")
 
         session["survey_form"] = survey_form
-
-        if "back" in request.form:
-            return redirect(url_for("survey_step", step=max(1, step - 1)))
         if "next" in request.form and step < total_steps:
             return redirect(url_for("survey_step", step=step + 1))
 
