@@ -196,33 +196,22 @@
 
 <div class="card" id="plan">
   <h3>Personalized Plan</h3>
+  <p class="text-muted" style="margin-top: -6px;">Step 1: Generate your plan.</p>
   <form method="post">
     <input type="hidden" name="action" value="plan">
-    <button type="submit">Generate / Refresh Plan</button>
+    <button type="submit" id="generate-plan-button" data-loading-text="Generating your plan...">
+      {% if plan %}Refresh Plan{% else %}Generate Plan{% endif %}
+    </button>
   </form>
   {% if plan %}
-    <div class="subcard" style="margin:16px 0 20px;">
-      <div class="info-row">
-        <span class="chip">Survey</span>
-        <div>
-          <strong>Share quick feedback.</strong>
-          <div class="text-muted">Once you've reviewed your plan, please take the short survey so we can improve the experience.</div>
-          <div style="margin-top: 10px;">
-            <a href="{{ url_for('survey') }}" style="text-decoration: none;">
-              <button type="button" class="secondary">📝 Open Survey</button>
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
     <h4>Risk Factors</h4>
-    <div style="margin-bottom: 18px;">
+    <ul class="risk-factors">
       {% for rf in plan.risk_factors %}
-        <span class="pill">{{ rf.replace("_", " ").title() }}</span>
+        <li>{{ rf.replace("_", " ").title() }}</li>
       {% endfor %}
-    </div>
+    </ul>
 
-    <h4>Weekly Goals</h4>
+    <h4 style="margin-top: 28px;">Weekly Goals</h4>
     <ul>
       {% for g in plan.weekly_goals %}
         <li><strong>{{ g.goal.title() }}</strong>: 
@@ -235,6 +224,7 @@
     </ul>
 
     {% if plan.daily_routine %}
+      <p class="text-muted" style="margin-top: 26px;">If you want to see the full plan, click below.</p>
       <button type="button" id="daily-routine-toggle" >Show Daily Routine</button>
       <div id="daily-routine-content" class="grid" style="display:none; margin-top: 14px;">
         {% for day, acts in plan.daily_routine.items() %}
@@ -250,9 +240,8 @@
       </div>
     {% endif %}
 
-    <!-- Survey Link Button -->
     <div style="margin-top: 28px; padding-top: 28px; border-top: 1px solid #e8ecf0;">
-      <p class="text-muted" style="margin-bottom: 14px;">💭 Now that you've reviewed your plan, we'd love to hear your thoughts!</p>
+      <p class="text-muted" style="margin-bottom: 14px;">Step 2: Share quick feedback after reviewing your plan.</p>
       <a href="{{ url_for('survey') }}" style="text-decoration: none;">
         <button type="button">Next</button>
       </a>
@@ -270,6 +259,17 @@
       dailyToggle.textContent = isExpanded ? "Show Daily Routine" : "Hide Daily Routine";
       dailyContent.style.display = isExpanded ? "none" : "grid";
     });
+  }
+
+  const planForm = document.querySelector('form input[name="action"][value="plan"]')?.closest("form");
+  if (planForm) {
+    const planButton = document.getElementById("generate-plan-button");
+    if (planButton) {
+      planForm.addEventListener("submit", () => {
+        planButton.disabled = true;
+        planButton.textContent = planButton.dataset.loadingText || "Generating your plan...";
+      });
+    }
   }
 
   const data = {{ chart_data|tojson }};
