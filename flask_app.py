@@ -813,6 +813,8 @@ def assessment():
             "age": "Age",
             "gender": "Gender",
             "occupation": "Occupation",
+            "education": "Highest education level",
+            "work_in_tech": "Work in tech/data/healthcare",
             "work_hours_per_week": "Work Hours / Week",
             "job_satisfaction": "Job Satisfaction",
             "workload_rating": "Workload Rating",
@@ -857,6 +859,8 @@ def assessment():
                 group=group,
                 gender_choices=gender_choices,
                 occupation_choices=occupation_choices,
+                education_options=EDUCATION_OPTIONS,
+                yes_no_options=YES_NO_OPTIONS,
                 defaults=defaults,
                 user_id=session.get("user_id"),
                 pred=session.get("current_prediction"),
@@ -896,6 +900,8 @@ def assessment():
                 group=group,
                 gender_choices=gender_choices,
                 occupation_choices=occupation_choices,
+                education_options=EDUCATION_OPTIONS,
+                yes_no_options=YES_NO_OPTIONS,
                 defaults=defaults,
                 user_id=session.get("user_id"),
                 pred=session.get("current_prediction"),
@@ -911,6 +917,8 @@ def assessment():
         age = parsed_values["age"]
         gender = request.form.get("gender", "female")
         occupation = request.form.get("occupation", "engineer")
+        education = request.form.get("education", "")
+        work_in_tech = request.form.get("work_in_tech", "")
         work_hours = parsed_values["work_hours_per_week"]
         job_satisfaction = parsed_values["job_satisfaction"]
         workload = parsed_values["workload_rating"]
@@ -947,13 +955,19 @@ def assessment():
             "social_interactions_count": social,
             "screen_unlocks_per_day": screen_unlocks
         }
-        demographics = {"age": age, "gender": gender, "occupation": occupation}
+        demographics = {
+            "age": age,
+            "gender": gender,
+            "occupation": occupation,
+            "education": education,
+            "work_in_tech": work_in_tech,
+        }
 
         pred = predict_user(user_data)
         session["current_prediction"] = pred
         session["current_user"] = user_data
         session["current_demographics"] = demographics
-        session["form_defaults"] = {**user_data}
+        session["form_defaults"] = {**user_data, "education": education, "work_in_tech": work_in_tech}
 
         get_log().append({
             "timestamp": datetime.utcnow().isoformat(),
@@ -1002,6 +1016,8 @@ def assessment():
         group=group,
         gender_choices=gender_choices,
         occupation_choices=occupation_choices,
+        education_options=EDUCATION_OPTIONS,
+        yes_no_options=YES_NO_OPTIONS,
         defaults=defaults,
         user_id=session.get("user_id"),
         pred=pred,
@@ -1092,11 +1108,6 @@ def survey_step(step: int):
 
     survey_form = session.get("survey_form", {})
     validation_labels = {
-        "q_demo_age": "Age",
-        "q_demo_gender": "Gender",
-        "q_demo_occupation": "Occupation",
-        "q_demo_education": "Highest education level",
-        "q_demo_work_in_tech": "Work in tech/data/healthcare",
         "q_health_stress_level": "Self-rated stress level",
         "q_health_prior_tool_use": "Prior tool use",
         "q_ai_knowledge": "AI knowledge",
@@ -1118,11 +1129,6 @@ def survey_step(step: int):
 
     step_fields = {
         1: [
-            "q_demo_age",
-            "q_demo_gender",
-            "q_demo_occupation",
-            "q_demo_education",
-            "q_demo_work_in_tech",
             "q_health_stress_level",
             "q_health_prior_tool_use",
             "q_ai_knowledge",
@@ -1189,7 +1195,7 @@ def survey_step(step: int):
                 system_preference_options=SYSTEM_PREFERENCE_OPTIONS,
             )
         for field in step_fields.get(step, []):
-            if field in ["q_demo_gender", "q_demo_occupation", "q_open_most_useful", "q_open_unclear", "q_open_suggestions", "q_open_uncertainty_impact"]:
+            if field in ["q_open_most_useful", "q_open_unclear", "q_open_suggestions", "q_open_uncertainty_impact"]:
                 survey_form[field] = request.form.get(field, "")
             else:
                 survey_form[field] = request.form.get(field, "")
@@ -1216,12 +1222,6 @@ def survey_step(step: int):
                     return int(survey_form.get(name, default))
                 except Exception:
                     return default
-
-            responses["q_demo_age"] = to_int("q_demo_age", 30)
-            responses["q_demo_gender"] = survey_form.get("q_demo_gender", "")
-            responses["q_demo_occupation"] = survey_form.get("q_demo_occupation", "")
-            responses["q_demo_education"] = survey_form.get("q_demo_education", "")
-            responses["q_demo_work_in_tech"] = survey_form.get("q_demo_work_in_tech", "No")
 
             responses["q_health_stress_level"] = to_int("q_health_stress_level", 3)
             responses["q_health_prior_tool_use"] = survey_form.get("q_health_prior_tool_use", "No")
