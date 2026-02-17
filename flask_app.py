@@ -1035,18 +1035,18 @@ def results():
     return redirect(url_for("assessment"))
 
 LIKERT_CORE: List[Tuple[str, str]] = [
-    ("q_trust_assessment", "I trust the stress risk assessment provided by this system."),
-    ("q_confident_rely", "I feel confident relying on this system to understand my stress/mental health."),
-    ("q_prediction_accurate", "The prediction seems accurate for me."),
-    ("q_risk_reflects_level", "The risk score reflects my current stress level."),
-    ("q_results_useful", "The results are useful for understanding my stress/mental health."),
-    ("q_recommendations_relevant", "The recommendations feel relevant to my situation."),
-    ("q_follow_plan", "I would follow the recommended stress-management plan."),
-    ("q_use_again_health", "I would use this system again for health-related decisions."),
-    ("q_try_plan_this_week", "How likely are you to try the recommended plan this week?"),
-    ("q_ux_easy", "The interface was easy to use."),
-    ("q_ux_clear_results", "The results were clear."),
-    ("q_ux_comfortable", "I felt comfortable interacting with the system."),
+    ("q_tam_pu_useful", "Using this system would be useful for managing my stress/mental health."),
+    ("q_tam_pu_effective", "Using this system would improve how effectively I manage my stress/mental health."),
+    ("q_tam_pu_productive", "Using this system would make me more productive in taking care of my mental health."),
+    ("q_tam_pu_easier", "Using this system would make it easier to manage my stress/mental health."),
+    ("q_tam_pu_understand", "Using this system would enhance my ability to understand my stress level."),
+    ("q_tam_pu_value", "Overall, I find this system valuable for my mental health decisions."),
+    ("q_tam_peou_learn", "Learning to use this system would be easy for me."),
+    ("q_tam_peou_clear", "My interaction with the system would be clear and understandable."),
+    ("q_tam_peou_skillful", "I would find it easy to become skillful at using the system."),
+    ("q_tam_peou_flexible", "I would find the system flexible to interact with."),
+    ("q_tam_peou_do_what", "I would find it easy to get the system to do what I want it to do."),
+    ("q_tam_peou_easy", "Overall, I would find the system easy to use."),
 ]
 
 LIKERT_GAAIS: List[Tuple[str, str]] = [
@@ -1063,12 +1063,17 @@ LIKERT_GAAIS: List[Tuple[str, str]] = [
 ]
 
 LIKERT_G2_UNCERTAINTY: List[Tuple[str, str]] = [
-    ("q_uncertainty_helped", "The uncertainty information helped me understand the system’s confidence."),
+    ("q_ess_understand", "From the explanation, I understand how the system works."),
+    ("q_ess_satisfying", "This explanation of how the system works is satisfying."),
+    ("q_ess_detail", "This explanation of how the system works has sufficient detail."),
+    ("q_ess_complete", "This explanation seems complete."),
+    ("q_ess_accurate", "This explanation shows me how accurate the system is."),
+    ("q_ess_reliable", "This explanation shows me how reliable the system is."),
+    ("q_ess_how_to_use", "This explanation tells me how to use the system."),
+    ("q_ess_useful_goals", "This explanation is useful to my goals."),
+    ("q_ess_trust_calibration", "This explanation helps me know when I should trust and not trust the system."),
+    ("q_uncertainty_understand_confidence", "The uncertainty visualization helped me understand the system’s confidence."),
     ("q_uncertainty_transparent", "Showing uncertainty made the prediction feel more transparent."),
-    ("q_uncertainty_preference", "I prefer systems that show uncertainty over single-number outputs."),
-    ("q_xai_helped", "The explanations helped me understand the prediction."),
-    ("q_xai_clear", "The feature-importance visualization was clear."),
-    ("q_xai_increased_trust", "The explanations increased my trust in the result."),
 ]
 
 EDUCATION_OPTIONS = [
@@ -1183,6 +1188,12 @@ def survey_step(step: int):
                 likert_core=LIKERT_CORE,
                 likert_gaais=LIKERT_GAAIS,
                 likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
+                likert_core_min=1,
+                likert_core_max=7,
+                likert_core_default=4,
+                likert_g2_min=1,
+                likert_g2_max=5,
+                likert_g2_default=3,
                 demographics=session.get("current_demographics") or {},
                 user_id=session.get("user_id"),
                 step=step,
@@ -1270,6 +1281,12 @@ def survey_step(step: int):
         likert_core=LIKERT_CORE,
         likert_gaais=LIKERT_GAAIS,
         likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
+        likert_core_min=1,
+        likert_core_max=7,
+        likert_core_default=4,
+        likert_g2_min=1,
+        likert_g2_max=5,
+        likert_g2_default=3,
         demographics=session.get("current_demographics") or {},
         user_id=session.get("user_id"),
         step=step,

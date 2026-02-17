@@ -13,27 +13,29 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (12, 8)
 
-# Aggregated metric definitions for the new questionnaire
+# Aggregated metric definitions for the TAM questionnaire
 AGG_METRICS = {
-    "trust_confidence": {
-        "label": "Trust & Confidence",
-        "questions": ["q_trust_assessment", "q_confident_rely"],
+    "tam_usefulness": {
+        "label": "TAM - Perceived Usefulness",
+        "questions": [
+            "q_tam_pu_useful",
+            "q_tam_pu_effective",
+            "q_tam_pu_productive",
+            "q_tam_pu_easier",
+            "q_tam_pu_understand",
+            "q_tam_pu_value",
+        ],
     },
-    "perceived_accuracy": {
-        "label": "Perceived Accuracy",
-        "questions": ["q_prediction_accurate", "q_risk_reflects_level"],
-    },
-    "usefulness": {
-        "label": "Perceived Usefulness",
-        "questions": ["q_results_useful", "q_recommendations_relevant"],
-    },
-    "willingness_decision_support": {
-        "label": "Willingness & Decision Support",
-        "questions": ["q_follow_plan", "q_use_again_health"],
-    },
-    "behavioral_intent": {
-        "label": "Behavioral Intent",
-        "questions": ["q_try_plan_this_week"],
+    "tam_ease_of_use": {
+        "label": "TAM - Perceived Ease of Use",
+        "questions": [
+            "q_tam_peou_learn",
+            "q_tam_peou_clear",
+            "q_tam_peou_skillful",
+            "q_tam_peou_flexible",
+            "q_tam_peou_do_what",
+            "q_tam_peou_easy",
+        ],
     },
     "gaais_attitudes": {
         "label": "GAAIS Attitudes",
@@ -50,27 +52,28 @@ AGG_METRICS = {
             "q_gaais_suffering",
         ],
     },
-    "uncertainty_transparency": {
-        "label": "Uncertainty Transparency (G2)",
+    "ess_explanation_satisfaction": {
+        "label": "ESS - Explanation Satisfaction (G2)",
         "questions": [
-            "q_uncertainty_helped",
+            "q_ess_understand",
+            "q_ess_satisfying",
+            "q_ess_detail",
+            "q_ess_complete",
+            "q_ess_accurate",
+            "q_ess_reliable",
+            "q_ess_how_to_use",
+            "q_ess_useful_goals",
+            "q_ess_trust_calibration",
+        ],
+        "g2_only": True,
+    },
+    "uncertainty_visualization": {
+        "label": "Uncertainty Visualization (G2)",
+        "questions": [
+            "q_uncertainty_understand_confidence",
             "q_uncertainty_transparent",
-            "q_uncertainty_preference",
         ],
         "g2_only": True,
-    },
-    "xai_clarity": {
-        "label": "Explainability & Control (G2)",
-        "questions": [
-            "q_xai_helped",
-            "q_xai_clear",
-            "q_xai_increased_trust",
-        ],
-        "g2_only": True,
-    },
-    "ux": {
-        "label": "User Experience",
-        "questions": ["q_ux_easy", "q_ux_clear_results", "q_ux_comfortable"],
     },
 }
 

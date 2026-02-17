@@ -1967,11 +1967,12 @@ if st.session_state.get("current_page") == "Survey":
         demo_defaults = st.session_state.get("current_demographics") or {}
 
         with st.form("study_questionnaire"):
-            likert_scale = [1, 2, 3, 4, 5]
+            likert_scale_5 = [1, 2, 3, 4, 5]
+            likert_scale_7 = [1, 2, 3, 4, 5, 6, 7]
             responses: Dict[str, object] = {}
 
-            def likert(label: str, key: str, default: int = 3) -> int:
-                return st.select_slider(label, options=likert_scale, value=default, key=key)
+            def likert(label: str, key: str, scale: list[int], default: int) -> int:
+                return st.select_slider(label, options=scale, value=default, key=key)
 
             st.subheader("1 - Demographics & Background")
             col_a, col_b, col_c = st.columns(3)
@@ -2004,7 +2005,12 @@ if st.session_state.get("current_page") == "Survey":
             )
 
             st.subheader("2 - Health & Stress Context")
-            responses["q_health_stress_level"] = likert("Self-rated current stress/mental health level (1 = very low, 5 = very high)", "q_health_stress_level")
+            responses["q_health_stress_level"] = likert(
+                "Self-rated current stress/mental health level (1 = very low, 5 = very high)",
+                "q_health_stress_level",
+                likert_scale_5,
+                3
+            )
             responses["q_health_prior_tool_use"] = st.radio(
                 "Prior use of stress-assessment or mental-health tools",
                 ["No", "Yes"],
@@ -2012,23 +2018,28 @@ if st.session_state.get("current_page") == "Survey":
             )
 
             st.subheader("3 - AI Literacy & Attitudes")
-            responses["q_ai_knowledge"] = likert("Self-rated AI knowledge (1 = none, 5 = advanced)", "q_ai_knowledge")
+            responses["q_ai_knowledge"] = likert(
+                "Self-rated AI knowledge (1 = none, 5 = advanced)",
+                "q_ai_knowledge",
+                likert_scale_5,
+                3
+            )
             responses["q_ai_tool_frequency"] = st.selectbox(
                 "Frequency of AI tool use",
                 ["Never", "Occasionally", "Weekly", "Daily"],
                 key="q_ai_tool_frequency"
             )
             st.markdown("**GAAIS-10 (Validated attitude items)**")
-            responses["q_gaais_interest"] = likert("I am interested in using artificial intelligence systems in my daily life.", "q_gaais_interest")
-            responses["q_gaais_impact"] = likert("Artificial Intelligence can have positive impacts on people's wellbeing.", "q_gaais_impact")
-            responses["q_gaais_excitement"] = likert("Artificial Intelligence is exciting.", "q_gaais_excitement")
-            responses["q_gaais_benefit"] = likert("Much of society will benefit from a future full of Artificial Intelligence.", "q_gaais_benefit")
-            responses["q_gaais_employment"] = likert("I would like to use artificial intelligence in my own job.", "q_gaais_employment")
-            responses["q_gaais_sinister"] = likert("I find artificial intelligence sinister.", "q_gaais_sinister")
-            responses["q_gaais_control"] = likert("Artificial Intelligence might take control of people.", "q_gaais_control")
-            responses["q_gaais_danger"] = likert("I think artificial intelligence is dangerous.", "q_gaais_danger")
-            responses["q_gaais_discomfort"] = likert("I shiver with discomfort when I think about future uses of artificial intelligence.", "q_gaais_discomfort")
-            responses["q_gaais_suffering"] = likert("People like me will suffer if artificial intelligence is used more and more.", "q_gaais_suffering")
+            responses["q_gaais_interest"] = likert("I am interested in using artificial intelligence systems in my daily life.", "q_gaais_interest", likert_scale_5, 3)
+            responses["q_gaais_impact"] = likert("Artificial Intelligence can have positive impacts on people's wellbeing.", "q_gaais_impact", likert_scale_5, 3)
+            responses["q_gaais_excitement"] = likert("Artificial Intelligence is exciting.", "q_gaais_excitement", likert_scale_5, 3)
+            responses["q_gaais_benefit"] = likert("Much of society will benefit from a future full of Artificial Intelligence.", "q_gaais_benefit", likert_scale_5, 3)
+            responses["q_gaais_employment"] = likert("I would like to use artificial intelligence in my own job.", "q_gaais_employment", likert_scale_5, 3)
+            responses["q_gaais_sinister"] = likert("I find artificial intelligence sinister.", "q_gaais_sinister", likert_scale_5, 3)
+            responses["q_gaais_control"] = likert("Artificial Intelligence might take control of people.", "q_gaais_control", likert_scale_5, 3)
+            responses["q_gaais_danger"] = likert("I think artificial intelligence is dangerous.", "q_gaais_danger", likert_scale_5, 3)
+            responses["q_gaais_discomfort"] = likert("I shiver with discomfort when I think about future uses of artificial intelligence.", "q_gaais_discomfort", likert_scale_5, 3)
+            responses["q_gaais_suffering"] = likert("People like me will suffer if artificial intelligence is used more and more.", "q_gaais_suffering", likert_scale_5, 3)
 
             st.markdown("**Health App Experience**")
             responses["q_health_app_frequency"] = st.selectbox(
@@ -2037,25 +2048,22 @@ if st.session_state.get("current_page") == "Survey":
                 key="q_health_app_frequency"
             )
 
-            st.subheader("Core Survey Items (Both Groups)")
-            st.markdown("**Trust & Confidence**")
-            responses["q_trust_assessment"] = likert("I trust the stress risk assessment provided by this system.", "q_trust_assessment")
-            responses["q_confident_rely"] = likert("I feel confident relying on this system to understand my stress/mental health.", "q_confident_rely")
-
-            st.markdown("**Perceived Accuracy**")
-            responses["q_prediction_accurate"] = likert("The prediction seems accurate for me.", "q_prediction_accurate")
-            responses["q_risk_reflects_level"] = likert("The risk score reflects my current stress level.", "q_risk_reflects_level")
-
+            st.subheader("Core Survey Items (TAM)")
             st.markdown("**Perceived Usefulness**")
-            responses["q_results_useful"] = likert("The results are useful for understanding my stress/mental health.", "q_results_useful")
-            responses["q_recommendations_relevant"] = likert("The recommendations feel relevant to my situation.", "q_recommendations_relevant")
+            responses["q_tam_pu_useful"] = likert("Using this system would be useful for managing my stress/mental health.", "q_tam_pu_useful", likert_scale_7, 4)
+            responses["q_tam_pu_effective"] = likert("Using this system would improve how effectively I manage my stress/mental health.", "q_tam_pu_effective", likert_scale_7, 4)
+            responses["q_tam_pu_productive"] = likert("Using this system would make me more productive in taking care of my mental health.", "q_tam_pu_productive", likert_scale_7, 4)
+            responses["q_tam_pu_easier"] = likert("Using this system would make it easier to manage my stress/mental health.", "q_tam_pu_easier", likert_scale_7, 4)
+            responses["q_tam_pu_understand"] = likert("Using this system would enhance my ability to understand my stress level.", "q_tam_pu_understand", likert_scale_7, 4)
+            responses["q_tam_pu_value"] = likert("Overall, I find this system valuable for my mental health decisions.", "q_tam_pu_value", likert_scale_7, 4)
 
-            st.markdown("**Willingness & Decision Support**")
-            responses["q_follow_plan"] = likert("I would follow the recommended stress-management plan.", "q_follow_plan")
-            responses["q_use_again_health"] = likert("I would use this system again for health-related decisions.", "q_use_again_health")
-
-            st.markdown("**Behavioral Measures**")
-            responses["q_try_plan_this_week"] = likert("How likely are you to try the recommended plan this week?", "q_try_plan_this_week")
+            st.markdown("**Perceived Ease of Use**")
+            responses["q_tam_peou_learn"] = likert("Learning to use this system would be easy for me.", "q_tam_peou_learn", likert_scale_7, 4)
+            responses["q_tam_peou_clear"] = likert("My interaction with the system would be clear and understandable.", "q_tam_peou_clear", likert_scale_7, 4)
+            responses["q_tam_peou_skillful"] = likert("I would find it easy to become skillful at using the system.", "q_tam_peou_skillful", likert_scale_7, 4)
+            responses["q_tam_peou_flexible"] = likert("I would find the system flexible to interact with.", "q_tam_peou_flexible", likert_scale_7, 4)
+            responses["q_tam_peou_do_what"] = likert("I would find it easy to get the system to do what I want it to do.", "q_tam_peou_do_what", likert_scale_7, 4)
+            responses["q_tam_peou_easy"] = likert("Overall, I would find the system easy to use.", "q_tam_peou_easy", likert_scale_7, 4)
             responses["q_attention_check_feature"] = st.selectbox(
                 "Attention Check: Which feature increased your risk the most?",
                 driver_options,
@@ -2068,11 +2076,6 @@ if st.session_state.get("current_page") == "Survey":
                 key="q_system_preference"
             )
 
-            st.markdown("**User Experience (UX)**")
-            responses["q_ux_easy"] = likert("The interface was easy to use.", "q_ux_easy")
-            responses["q_ux_clear_results"] = likert("The results were clear.", "q_ux_clear_results")
-            responses["q_ux_comfortable"] = likert("I felt comfortable interacting with the system.", "q_ux_comfortable")
-
             st.subheader("Open-Ended Questions")
             responses["q_open_most_useful"] = st.text_area("What part of the assessment was most useful?", key="q_open_most_useful")
             responses["q_open_unclear"] = st.text_area("What part was unclear?", key="q_open_unclear")
@@ -2080,15 +2083,30 @@ if st.session_state.get("current_page") == "Survey":
 
             if st.session_state["study_mode"] == "G2":
                 st.subheader("Group 2 Only – Uncertainty & Explanations")
-                st.markdown("**Uncertainty Displays**")
-                responses["q_uncertainty_helped"] = likert("The uncertainty information helped me understand the system’s confidence.", "q_uncertainty_helped")
-                responses["q_uncertainty_transparent"] = likert("Showing uncertainty made the prediction feel more transparent.", "q_uncertainty_transparent")
-                responses["q_uncertainty_preference"] = likert("I prefer systems that show uncertainty over single-number outputs.", "q_uncertainty_preference")
+                st.markdown("**Explanation Satisfaction Scale (ESS)**")
+                responses["q_ess_understand"] = likert("From the explanation, I understand how the system works.", "q_ess_understand", likert_scale_5, 3)
+                responses["q_ess_satisfying"] = likert("This explanation of how the system works is satisfying.", "q_ess_satisfying", likert_scale_5, 3)
+                responses["q_ess_detail"] = likert("This explanation of how the system works has sufficient detail.", "q_ess_detail", likert_scale_5, 3)
+                responses["q_ess_complete"] = likert("This explanation seems complete.", "q_ess_complete", likert_scale_5, 3)
+                responses["q_ess_accurate"] = likert("This explanation shows me how accurate the system is.", "q_ess_accurate", likert_scale_5, 3)
+                responses["q_ess_reliable"] = likert("This explanation shows me how reliable the system is.", "q_ess_reliable", likert_scale_5, 3)
+                responses["q_ess_how_to_use"] = likert("This explanation tells me how to use the system.", "q_ess_how_to_use", likert_scale_5, 3)
+                responses["q_ess_useful_goals"] = likert("This explanation is useful to my goals.", "q_ess_useful_goals", likert_scale_5, 3)
+                responses["q_ess_trust_calibration"] = likert("This explanation helps me know when I should trust and not trust the system.", "q_ess_trust_calibration", likert_scale_5, 3)
 
-                st.markdown("**Explanations (XAI)**")
-                responses["q_xai_helped"] = likert("The explanations helped me understand the prediction.", "q_xai_helped")
-                responses["q_xai_clear"] = likert("The feature-importance visualization was clear.", "q_xai_clear")
-                responses["q_xai_increased_trust"] = likert("The explanations increased my trust in the result.", "q_xai_increased_trust")
+                st.markdown("**Uncertainty Visualization**")
+                responses["q_uncertainty_understand_confidence"] = likert(
+                    "The uncertainty visualization helped me understand the system’s confidence.",
+                    "q_uncertainty_understand_confidence",
+                    likert_scale_5,
+                    3
+                )
+                responses["q_uncertainty_transparent"] = likert(
+                    "Showing uncertainty made the prediction feel more transparent.",
+                    "q_uncertainty_transparent",
+                    likert_scale_5,
+                    3
+                )
                 responses["q_open_uncertainty_impact"] = st.text_area(
                     "Did the uncertainty or explanations change how you interpreted the results?",
                     key="q_open_uncertainty_impact"
