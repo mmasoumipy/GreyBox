@@ -861,6 +861,7 @@ def assessment():
                 occupation_choices=occupation_choices,
                 education_options=EDUCATION_OPTIONS,
                 yes_no_options=YES_NO_OPTIONS,
+                work_in_tech_options=WORK_IN_TECH_OPTIONS,
                 defaults=defaults,
                 user_id=session.get("user_id"),
                 pred=session.get("current_prediction"),
@@ -902,6 +903,7 @@ def assessment():
                 occupation_choices=occupation_choices,
                 education_options=EDUCATION_OPTIONS,
                 yes_no_options=YES_NO_OPTIONS,
+                work_in_tech_options=WORK_IN_TECH_OPTIONS,
                 defaults=defaults,
                 user_id=session.get("user_id"),
                 pred=session.get("current_prediction"),
@@ -1018,6 +1020,7 @@ def assessment():
         occupation_choices=occupation_choices,
         education_options=EDUCATION_OPTIONS,
         yes_no_options=YES_NO_OPTIONS,
+        work_in_tech_options=WORK_IN_TECH_OPTIONS,
         defaults=defaults,
         user_id=session.get("user_id"),
         pred=pred,
@@ -1086,6 +1089,7 @@ YES_NO_OPTIONS = ["No", "Yes"]
 AI_TOOL_FREQUENCY_OPTIONS = ["Never", "Occasionally", "Weekly", "Daily"]
 HEALTH_APP_FREQUENCY_OPTIONS = ["Never", "Monthly", "Weekly", "Daily"]
 SYSTEM_PREFERENCE_OPTIONS = ["Basic", "Advanced", "No preference"]
+WORK_IN_TECH_OPTIONS = ["Yes, tech and data", "Yes, healthcare", "No"]
 
 @app.route("/survey", methods=["GET"])
 def survey():

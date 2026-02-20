@@ -48,7 +48,7 @@
         <div class="field-hint">Include data/healthcare-related roles.</div>
         <select name="work_in_tech" id="work_in_tech" required>
           <option value="" disabled {% if not defaults.get('work_in_tech') %}selected{% endif %}>Select...</option>
-          {% for opt in yes_no_options or ["No", "Yes"] %}
+          {% for opt in work_in_tech_options or ["Yes, tech and data", "Yes, healthcare", "No"] %}
             <option value="{{ opt }}" {% if defaults.get('work_in_tech','') == opt %}selected{% endif %}>{{ opt }}</option>
           {% endfor %}
         </select>
