@@ -279,7 +279,7 @@
     <div style="margin-top: 28px; display: flex; gap: 12px; justify-content: space-between;">
       <div>
         {% if step > 1 %}
-          <button type="submit" name="back">← Back</button>
+          <button type="submit" name="back" formnovalidate>← Back</button>
         {% endif %}
       </div>
       <div>
@@ -293,6 +293,20 @@
   </form>
 </div>
 <script>
+  const flashErrors = Array.from(document.querySelectorAll(".flash.error")).map((el) => el.textContent || "");
+  const matchUncertainty = flashErrors.some((msg) => msg.includes("Uncertainty impact"));
+  if (matchUncertainty) {
+    const uncertaintyFields = [
+      "q_open_uncertainty_impact",
+      "q_open_uncertainty_transparency",
+      "q_open_uncertainty_confidence",
+    ];
+    uncertaintyFields.forEach((id) => {
+      const field = document.getElementById(id);
+      if (field) field.classList.add("input-error");
+    });
+  }
+
   const sliders = document.querySelectorAll("[data-slider]");
   sliders.forEach((wrap) => {
     const input = wrap.querySelector("input[type='range']");

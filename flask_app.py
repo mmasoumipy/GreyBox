@@ -1125,9 +1125,9 @@ def survey_step(step: int):
         "q_open_most_useful": "Most useful part",
         "q_open_unclear": "Unclear part",
         "q_open_suggestions": "Suggestions",
-        "q_open_uncertainty_impact": "Uncertainty impact",
-        "q_open_uncertainty_transparency": "Uncertainty transparency impact",
-        "q_open_uncertainty_confidence": "Uncertainty confidence impact",
+        "q_open_uncertainty_impact": "Uncertainty impact: Did the uncertainty or explanations change how you interpreted the results?",
+        "q_open_uncertainty_transparency": "Uncertainty transparency impact: How did the uncertainty information affect your perception of the system’s transparency?",
+        "q_open_uncertainty_confidence": "Uncertainty confidence impact: How did the uncertainty visualization influence your understanding of the system’s confidence?",
     }
 
     def grab_int(name: str, default: int = 3) -> int:
