@@ -1035,18 +1035,18 @@ def results():
     return redirect(url_for("assessment"))
 
 LIKERT_CORE: List[Tuple[str, str]] = [
-    ("q_tam_pu_useful", "Using this system would be useful for managing my stress/mental health."),
-    ("q_tam_pu_effective", "Using this system would improve how effectively I manage my stress/mental health."),
-    ("q_tam_pu_productive", "Using this system would make me more productive in taking care of my mental health."),
-    ("q_tam_pu_easier", "Using this system would make it easier to manage my stress/mental health."),
-    ("q_tam_pu_understand", "Using this system would enhance my ability to understand my stress level."),
-    ("q_tam_pu_value", "Overall, I find this system valuable for my mental health decisions."),
-    ("q_tam_peou_learn", "Learning to use this system would be easy for me."),
-    ("q_tam_peou_clear", "My interaction with the system would be clear and understandable."),
-    ("q_tam_peou_skillful", "I would find it easy to become skillful at using the system."),
-    ("q_tam_peou_flexible", "I would find the system flexible to interact with."),
-    ("q_tam_peou_do_what", "I would find it easy to get the system to do what I want it to do."),
-    ("q_tam_peou_easy", "Overall, I would find the system easy to use."),
+    ("q_tam_pu_useful", "Using this stress assessment system would help me manage my stress more quickly."),
+    ("q_tam_pu_effective", "Using this stress assessment system would improve how effectively I manage my stress."),
+    ("q_tam_pu_productive", "Using this stress assessment system would increase my productivity in taking care of my wellbeing."),
+    ("q_tam_pu_easier", "Using this stress assessment system would make it easier to manage my stress."),
+    ("q_tam_pu_understand", "Using this stress assessment system would enhance my effectiveness in monitoring my stress levels."),
+    ("q_tam_pu_value", "I would find this stress assessment system useful for my stress-related decisions."),
+    ("q_tam_peou_learn", "Learning to use this stress assessment system would be easy for me."),
+    ("q_tam_peou_clear", "My interaction with this stress assessment system would be clear and understandable."),
+    ("q_tam_peou_skillful", "It would be easy for me to become skillful at using this stress assessment system."),
+    ("q_tam_peou_flexible", "I would find this stress assessment system flexible to interact with."),
+    ("q_tam_peou_do_what", "I would find it easy to get this stress assessment system to do what I want it to do."),
+    ("q_tam_peou_easy", "Overall, I would find this stress assessment system easy to use."),
 ]
 
 LIKERT_GAAIS: List[Tuple[str, str]] = [
@@ -1063,17 +1063,15 @@ LIKERT_GAAIS: List[Tuple[str, str]] = [
 ]
 
 LIKERT_G2_UNCERTAINTY: List[Tuple[str, str]] = [
-    ("q_ess_understand", "From the explanation, I understand how the system works."),
-    ("q_ess_satisfying", "This explanation of how the system works is satisfying."),
-    ("q_ess_detail", "This explanation of how the system works has sufficient detail."),
+    ("q_ess_understand", "From the explanation, I understand how this stress assessment system works."),
+    ("q_ess_satisfying", "This explanation of how this stress assessment system works is satisfying."),
+    ("q_ess_detail", "This explanation of how this stress assessment system works has sufficient detail."),
     ("q_ess_complete", "This explanation seems complete."),
-    ("q_ess_accurate", "This explanation shows me how accurate the system is."),
-    ("q_ess_reliable", "This explanation shows me how reliable the system is."),
-    ("q_ess_how_to_use", "This explanation tells me how to use the system."),
+    ("q_ess_accurate", "This explanation shows how accurate this stress assessment system is."),
+    ("q_ess_reliable", "This explanation shows me how reliable this stress assessment system is."),
+    ("q_ess_how_to_use", "This explanation tells me how to use this stress assessment system."),
     ("q_ess_useful_goals", "This explanation is useful to my goals."),
-    ("q_ess_trust_calibration", "This explanation helps me know when I should trust and not trust the system."),
-    ("q_uncertainty_understand_confidence", "The uncertainty visualization helped me understand the system’s confidence."),
-    ("q_uncertainty_transparent", "Showing uncertainty made the prediction feel more transparent."),
+    ("q_ess_trust_calibration", "This explanation helps me know when I should trust and not trust this stress assessment system."),
 ]
 
 EDUCATION_OPTIONS = [
@@ -1124,6 +1122,8 @@ def survey_step(step: int):
         "q_open_unclear": "Unclear part",
         "q_open_suggestions": "Suggestions",
         "q_open_uncertainty_impact": "Uncertainty impact",
+        "q_open_uncertainty_transparency": "Uncertainty transparency impact",
+        "q_open_uncertainty_confidence": "Uncertainty confidence impact",
     }
 
     def grab_int(name: str, default: int = 3) -> int:
@@ -1150,7 +1150,11 @@ def survey_step(step: int):
         ],
     }
     if group == "G2":
-        step_fields[3].append("q_open_uncertainty_impact")
+        step_fields[3].extend([
+            "q_open_uncertainty_impact",
+            "q_open_uncertainty_transparency",
+            "q_open_uncertainty_confidence",
+        ])
 
     if request.method == "POST":
         if "back" in request.form:
@@ -1206,7 +1210,14 @@ def survey_step(step: int):
                 system_preference_options=SYSTEM_PREFERENCE_OPTIONS,
             )
         for field in step_fields.get(step, []):
-            if field in ["q_open_most_useful", "q_open_unclear", "q_open_suggestions", "q_open_uncertainty_impact"]:
+            if field in [
+                "q_open_most_useful",
+                "q_open_unclear",
+                "q_open_suggestions",
+                "q_open_uncertainty_impact",
+                "q_open_uncertainty_transparency",
+                "q_open_uncertainty_confidence",
+            ]:
                 survey_form[field] = request.form.get(field, "")
             else:
                 survey_form[field] = request.form.get(field, "")
@@ -1257,6 +1268,8 @@ def survey_step(step: int):
                 for key, _ in LIKERT_G2_UNCERTAINTY:
                     responses[key] = to_int(key, 3)
                 responses["q_open_uncertainty_impact"] = survey_form.get("q_open_uncertainty_impact", "")
+                responses["q_open_uncertainty_transparency"] = survey_form.get("q_open_uncertainty_transparency", "")
+                responses["q_open_uncertainty_confidence"] = survey_form.get("q_open_uncertainty_confidence", "")
 
             get_log().append({
                 "timestamp": datetime.utcnow().isoformat(),

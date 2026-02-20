@@ -105,21 +105,87 @@
     {% elif step == 2 %}
       <div class="section-block">
         <div class="section-title">Core Survey Items</div>
-        <div class="q-grid slider-grid">
-          {% for key, label in likert_core %}
-            <div class="form-group">
-              <label>{{ label }}</label>
-              <div class="field-hint">1 = strongly disagree, 5 = strongly agree.</div>
-              <div data-slider>
-                <input type="range" name="{{ key }}" min="1" max="5" step="1" value="{{ defaults.get(key, 3) }}" required>
-                <div class="slider-meta">
-                  <span class="slider-edge-left">1</span>
-                  <span class="slider-current"></span>
-                  <span class="slider-edge-right">5</span>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
+        <p class="text-text" style="margin: 0 0 12px 0;">Answer using the Likely/Unlikely scale shown below.</p>
+        {% set scale_labels = ["Extremely", "Quite", "Slightly", "Neither", "Slightly", "Quite", "Extremely"] %}
+
+        <div class="tam-table-wrap">
+          <table class="tam-table" aria-label="Technology Acceptance Model — Perceived Usefulness">
+            <thead>
+              <tr>
+                <th class="tam-statement" rowspan="2"></th>
+                <!-- Technology Acceptance Model - Perceived Usefulness (PU) -->
+                <th colspan="3">Likely</th>
+                <th rowspan="2">Neither</th>
+                <th colspan="3">Unlikely</th>
+              </tr>
+              <tr>
+                {% for label in scale_labels %}
+                  {% if loop.index0 != 3 %}
+                    <th class="tam-subhead">{{ label }}</th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for key, label in likert_core[:6] %}
+                <tr>
+                  <td class="tam-statement">{{ loop.index }}. {{ label }}</td>
+                  {% for score in range(1, 8) %}
+                    <td>
+                      <input
+                        type="radio"
+                        name="{{ key }}"
+                        value="{{ score }}"
+                        {% if defaults.get(key, 4)|int == score %}checked{% endif %}
+                        {% if score == 1 %}required{% endif %}
+                        aria-label="{{ label }} - {{ scale_labels[score - 1] }}"
+                      >
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="tam-table-wrap" style="margin-top: 18px;">
+          <table class="tam-table" aria-label="Technology Acceptance Model — Perceived Ease of Use">
+            <thead>
+              <tr>
+                <th class="tam-statement" rowspan="2"></th>
+                <!-- Technology Acceptance Model - Perceived Ease of Use (PEU) -->
+                <th colspan="3">Likely</th>
+                <th rowspan="2">Neither</th>
+                <th colspan="3">Unlikely</th>
+              </tr>
+              <tr>
+                {% for label in scale_labels %}
+                  {% if loop.index0 != 3 %}
+                    <th class="tam-subhead">{{ label }}</th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for key, label in likert_core[6:] %}
+                <tr>
+                  <td class="tam-statement">{{ loop.index + 6 }}. {{ label }}</td>
+                  {% for score in range(1, 8) %}
+                    <td>
+                      <input
+                        type="radio"
+                        name="{{ key }}"
+                        value="{{ score }}"
+                        {% if defaults.get(key, 4)|int == score %}checked{% endif %}
+                        {% if score == 1 %}required{% endif %}
+                        aria-label="{{ label }} - {{ scale_labels[score - 1] }}"
+                      >
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
       </div>
     {% elif step == 3 %}
@@ -194,6 +260,16 @@
               <label for="q_open_uncertainty_impact">Did the uncertainty or explanations change how you interpreted the results?</label>
               <div class="field-hint">Briefly describe any change in interpretation.</div>
               <textarea name="q_open_uncertainty_impact" id="q_open_uncertainty_impact" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_uncertainty_impact', '') }}</textarea>
+            </div>
+            <div class="form-group">
+              <label for="q_open_uncertainty_transparency">How did the uncertainty information affect your perception of the system’s transparency?</label>
+              <div class="field-hint">Share any changes in how transparent the system felt.</div>
+              <textarea name="q_open_uncertainty_transparency" id="q_open_uncertainty_transparency" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_uncertainty_transparency', '') }}</textarea>
+            </div>
+            <div class="form-group">
+              <label for="q_open_uncertainty_confidence">How did the uncertainty visualization influence your understanding of the system’s confidence?</label>
+              <div class="field-hint">Briefly describe your understanding of confidence.</div>
+              <textarea name="q_open_uncertainty_confidence" id="q_open_uncertainty_confidence" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_uncertainty_confidence', '') }}</textarea>
             </div>
           </div>
         </div>
