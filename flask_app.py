@@ -69,6 +69,38 @@ for c in NUM_COLS:
         df[c] = pd.to_numeric(df[c], errors="coerce")
         df[c] = df[c].fillna(df[c].median())
 
+OCCUPATION_SEMANTIC_ORDER = [
+    "engineer and computer scientist",
+    "technician",
+    "researcher",
+    "professor",
+    "teacher",
+    "physician",
+    "nurse",
+    "resident",
+    "medical student",
+    "student",
+    "admin staff",
+    "other",
+]
+
+def order_occupations(options):
+    base = [str(opt).strip().lower() for opt in options if str(opt).strip()]
+    seen = set()
+    base_unique = []
+    for opt in base:
+        if opt not in seen:
+            base_unique.append(opt)
+            seen.add(opt)
+    order_index = {name: i for i, name in enumerate(OCCUPATION_SEMANTIC_ORDER)}
+    def sort_key(opt):
+        if opt == "other":
+            return (2, 0, opt)
+        if opt in order_index:
+            return (0, order_index[opt], opt)
+        return (1, 0, opt)
+    return sorted(base_unique, key=sort_key)
+
 if TARGET_COL in df.columns:
     df[TARGET_COL] = pd.to_numeric(df[TARGET_COL], errors="coerce")
     df["target_binary"] = (df[TARGET_COL] > df[TARGET_COL].median()).astype(int)
@@ -126,8 +158,9 @@ def train_all(df: pd.DataFrame) -> Artifacts:
     for c in CAT_COLS:
         if c in X_tr.columns:
             cats = list(pd.Categorical(X_tr[c]).categories)
-            if "unknown" not in cats:
-                cats = cats + ["unknown"]
+            cats = [c for c in cats if c != "unknown"]
+            if "other" not in cats:
+                cats = cats + ["other"]
             X_tr[c] = pd.Categorical(X_tr[c], categories=cats)
             X_val[c] = pd.Categorical(X_val[c], categories=cats)
             X_te[c] = pd.Categorical(X_te[c], categories=cats)
@@ -254,7 +287,7 @@ def _prepare_df_row(d: Dict) -> pd.DataFrame:
         if cats:
             X[c] = pd.Categorical(X[c], categories=cats)
             if X[c].isna().any():
-                X[c] = X[c].fillna("unknown")
+                X[c] = X[c].fillna("other")
         else:
             X[c] = pd.Categorical(X[c])
 
@@ -790,7 +823,15 @@ def assessment():
     if request.method == "POST":
         gender_choices = ARTS.cat_categories.get("gender", ["male", "female", "other"]) or ["male", "female", "other"]
         occupation_choices = ARTS.cat_categories.get("occupation", ["engineer", "nurse", "student"]) or ["engineer", "nurse", "student"]
-        occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "professor"]
+        occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "unknown"]
+        lower_choices = [str(opt).lower() for opt in occupation_choices]
+        if "other" not in lower_choices:
+            occupation_choices.append("other")
+        if "teacher" not in lower_choices:
+            occupation_choices.append("teacher")
+        if "professor" not in lower_choices:
+            occupation_choices.append("professor")
+        occupation_choices = order_occupations(occupation_choices)
         action = request.form.get("action")
         if action == "plan":
             pred = session.get("current_prediction")
@@ -985,7 +1026,15 @@ def assessment():
 
     gender_choices = ARTS.cat_categories.get("gender", ["male", "female", "other"]) or ["male", "female", "other"]
     occupation_choices = ARTS.cat_categories.get("occupation", ["engineer", "nurse", "student"]) or ["engineer", "nurse", "student"]
-    occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "professor"]
+    occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "unknown"]
+    lower_choices = [str(opt).lower() for opt in occupation_choices]
+    if "other" not in lower_choices:
+        occupation_choices.append("other")
+    if "teacher" not in lower_choices:
+        occupation_choices.append("teacher")
+    if "professor" not in lower_choices:
+        occupation_choices.append("professor")
+    occupation_choices = order_occupations(occupation_choices)
     pred = session.get("current_prediction")
     user_data = session.get("current_user")
     plan = session.get("stress_plan")
