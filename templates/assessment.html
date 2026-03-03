@@ -167,36 +167,74 @@
 
     {% if group == "G2" %}
     <div class="card full-span chart-card" style="margin:0; height:100%;">
-      <h4>Uncertainty & Coverage</h4>
-      <p class="text-muted">Confidence reflects how tight the prediction band is. Coverage shows how similar your profile is to people the model has seen before.</p>
+      <h4>{{ uncertainty_copy.section_title }}</h4>
+      <p class="text-muted">{{ uncertainty_copy.section_intro }}</p>
       {% set conf_percent = 100 - (confidence.width * 100 * 2) %}
       {% if conf_percent < 10 %}{% set conf_percent = 10 %}{% endif %}
       {% if conf_percent > 90 %}{% set conf_percent = 90 %}{% endif %}
-      <div class="confidence-wrap">
+      <div class="confidence-wrap" aria-label="Confidence scale from high to low">
         <div class="confidence-bar">
           <div class="confidence-knob" style="left: {{ conf_percent }}%;"></div>
         </div>
         <div class="confidence-labels">
-          <span>More confident</span>
-          <span>Less confident</span>
+          <span>{{ uncertainty_copy.slider_left }}</span>
+          <span>{{ uncertainty_copy.slider_right }}</span>
         </div>
       </div>
-      <div class="confidence-helper">We tighten the band when predictions stay consistent for similar people. Your current band spans {{ (confidence.width * 100)|round(1) }} percentage points.</div>
+      <div class="text-muted" style="margin-top:8px;">{{ uncertainty_copy.confidence_helper|replace('\n','<br>')|safe }}</div>
+      {% set half_span = (confidence.width * 50)|round(1) %}
+      <div class="confidence-helper">{{ uncertainty_copy.range_helper.format(half_span=half_span) }}</div>
       <div class="subcard" style="margin:14px 0 12px;">
         <div class="info-row" style="margin-bottom:8px;">
-          <span class="chip">Calibrated</span>
-          <div><strong>Confidence:</strong> {{ confidence.level }}<br><span class="text-muted">{{ confidence.explanation }}</span></div>
+          <span class="chip">{{ uncertainty_copy.confidence_chip }}</span>
+          <div><strong>{{ uncertainty_copy.confidence_chip }}:</strong> {{ confidence.level }}<br><span class="text-muted">{{ confidence.explanation }}</span></div>
         </div>
         <div class="info-row">
-          <span class="chip">Coverage</span>
-          <div><strong>{{ coverage.label }}</strong> – {{ coverage.message }}</div>
+          <span class="chip">{{ uncertainty_copy.familiarity_chip }}</span>
+          <div>
+            <strong>{{ coverage.label }}</strong> – {{ coverage.message }}
+          </div>
         </div>
       </div>
-      <div id="uncertainty_bar" style="height:260px; margin-bottom:12px;"></div>
-      <div class="info-row">
-        <span class="chip">Uncertainty</span>
-        <div class="text-muted">Aleatoric = randomness in life we cannot reduce. Epistemic = model knowledge gaps that shrink as we see more similar people.</div>
+      <div class="subcard" style="margin:0 0 12px;">
+        <div style="font-weight:600; margin-bottom:8px;">{{ uncertainty_copy.variance_title }}</div>
+        {% if chart_data and chart_data.uncertainty and chart_data.uncertainty.aleatoric is not none and chart_data.uncertainty.epistemic is not none %}
+          {% set a_val = chart_data.uncertainty.aleatoric %}
+          {% set e_val = chart_data.uncertainty.epistemic %}
+          {% set total_val = a_val + e_val %}
+          {% if total_val > 0 %}
+            {% set a_pct = ((a_val / total_val) * 100)|round(1) %}
+            {% set e_pct = ((e_val / total_val) * 100)|round(1) %}
+          {% else %}
+            {% set a_pct = 0 %}
+            {% set e_pct = 0 %}
+          {% endif %}
+          <div class="info-row" style="margin-bottom:6px;">
+            <div>{{ uncertainty_copy.variance_row_aleatoric }}</div>
+            <div><strong>{{ a_pct }}%</strong></div>
+          </div>
+          <div class="info-row">
+            <div>{{ uncertainty_copy.variance_row_epistemic }}</div>
+            <div><strong>{{ e_pct }}%</strong></div>
+          </div>
+        {% else %}
+          <div class="text-muted" style="margin-bottom:6px;">{{ uncertainty_copy.variance_fallback_a }}</div>
+          <div class="text-muted">{{ uncertainty_copy.variance_fallback_b }}</div>
+        {% endif %}
+        <div class="text-muted" style="margin-top:8px;">
+          {{ uncertainty_copy.variance_total.format(half_span=half_span) }}
+        </div>
       </div>
+      <details class="info-row">
+        <summary class="text-muted" aria-label="{{ uncertainty_copy.learn_more_title }}">{{ uncertainty_copy.learn_more_title }}</summary>
+        <div class="text-muted" style="margin-top:8px;">
+          <ul style="margin:0; padding-left:18px;">
+            {% for item in uncertainty_copy.learn_more_items %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </details>
     </div>
     {% endif %}
 
@@ -320,30 +358,6 @@
       ]
     }
   }], {margin:{l:30,r:30,t:20,b:10}, font:{family:"Source Sans Pro"}});
-
-  // Uncertainty breakdown (G2 only)
-  if (data.uncertainty) {
-    Plotly.newPlot('uncertainty_bar', [{
-      type: 'bar',
-      x: [data.uncertainty.aleatoric, data.uncertainty.epistemic],
-      y: ["Uncertainty"],
-      orientation: 'h',
-      marker: {color: ['#a7f3d0', '#fed7aa']},
-      text: [
-        `Natural variation: ${data.uncertainty.aleatoric.toFixed(1)}%`,
-        `AI knowledge gaps: ${data.uncertainty.epistemic.toFixed(1)}%`
-      ],
-      textposition: 'inside',
-      textfont: {size: 12, color: '#fff'}
-    }], {
-      barmode: 'stack',
-      height: 260,
-      margin: {l:10,r:10,t:10,b:30},
-      showlegend: false,
-      xaxis: {title: "Share of uncertainty (%)"},
-      font:{family:"Source Sans Pro"}
-    });
-  }
 
   // Drivers chart
   const driversEl = document.getElementById('drivers_bar');

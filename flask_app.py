@@ -331,43 +331,82 @@ def predict_user(p: Dict) -> Dict:
         "ood_flag": ood_flag
     }
 
+UNCERTAINTY_COPY = {
+    "section_title": "Model Confidence & Familiarity",
+    "section_intro": "Confidence shows how stable your score is for people with similar answers. "
+                     "Model familiarity shows how common your profile is in the data.",
+    "slider_left": "High confidence",
+    "slider_right": "Low confidence",
+    "confidence_helper": "Confidence shows how steady your result is.\nIf your score would stay similar even if you answered again, confidence is higher.",
+    "range_helper": "Small day-to-day changes in your habits could shift your score by about ±{half_span}%.",
+    "confidence_chip": "Stability",
+    "confidence_levels": {
+        "high": {
+            "label": "High stability",
+            "explanation": "Scores for similar people tend to stay in a tight range.",
+        },
+        "moderate": {
+            "label": "Moderate stability",
+            "explanation": "Scores usually stay within a mid-sized range; habits can shift it.",
+        },
+        "low": {
+            "label": "Needs more information",
+            "explanation": "We see fewer consistent patterns for similar profiles, so the range is wider.",
+        },
+    },
+    "familiarity_chip": "Model familiarity",
+    "familiarity_tooltip": "Technical meaning: how well your answers are represented in the training data.",
+    "familiarity_levels": {
+        "high": {
+            "label": "High familiarity",
+            "message": "Many participants look similar to you, so the estimate is well supported.",
+            "tone": "success",
+        },
+        "moderate": {
+            "label": "Moderate familiarity",
+            "message": "We have some comparable participants, but lifestyle swings can still move the score.",
+            "tone": "info",
+        },
+        "low": {
+            "label": "Limited familiarity",
+            "message": "Only a few people in the data look similar, so this estimate is less certain.",
+            "tone": "warning",
+        },
+    },
+    "learn_more_title": "Learn more about uncertainty",
+    "learn_more_items": [
+        "Aleatoric: natural life variability that cannot be fully reduced.",
+        "Epistemic: model uncertainty that can shrink as we collect more similar data.",
+    ],
+    "variance_title": "Why your score may vary",
+    "variance_row_aleatoric": "Everyday variation (sleep, mood, unexpected events)",
+    "variance_row_epistemic": "The system has seen fewer people very similar to you.",
+    "variance_fallback_a": "Some variation comes from real-life factors we can’t fully predict.",
+    "variance_fallback_b": "Some variation comes from having fewer highly similar cases in our data.",
+    "variance_total": "Overall, your score may vary by about ±{half_span}%.",
+}
+
 def interpret_confidence(lower: float, upper: float) -> Dict[str, str]:
     width = upper - lower
     if width <= 0.10:
-        level = "High confidence"
-        explainer = "We repeatedly land within a narrow band for people like you."
+        level = UNCERTAINTY_COPY["confidence_levels"]["high"]["label"]
+        explainer = UNCERTAINTY_COPY["confidence_levels"]["high"]["explanation"]
     elif width <= 0.20:
-        level = "Moderate confidence"
-        explainer = "Your score usually sits inside a medium-sized band; habits can shift it."
+        level = UNCERTAINTY_COPY["confidence_levels"]["moderate"]["label"]
+        explainer = UNCERTAINTY_COPY["confidence_levels"]["moderate"]["explanation"]
     else:
-        level = "Needs more information"
-        explainer = "We do not see enough consistent data for similar profiles, so we show a wide band."
+        level = UNCERTAINTY_COPY["confidence_levels"]["low"]["label"]
+        explainer = UNCERTAINTY_COPY["confidence_levels"]["low"]["explanation"]
     return {"level": level, "explanation": explainer, "width": width}
 
 def compute_coverage_signal(width: float, ood_flag: bool) -> Dict[str, str]:
     if ood_flag:
-        return {
-            "label": "Low coverage",
-            "message": "Your answers look uncommon in our training data, so treat this result with extra care.",
-            "tone": "warning",
-        }
+        return UNCERTAINTY_COPY["familiarity_levels"]["low"]
     if width <= 0.12:
-        return {
-            "label": "High coverage",
-            "message": "We have plenty of participants similar to you, so the estimate is well supported.",
-            "tone": "success",
-        }
+        return UNCERTAINTY_COPY["familiarity_levels"]["high"]
     if width <= 0.20:
-        return {
-            "label": "Moderate coverage",
-            "message": "We have some comparable participants, but lifestyle swings can still move the score.",
-            "tone": "info",
-        }
-    return {
-        "label": "Limited coverage",
-        "message": "Only a few people in the data look similar, so the model adds a wide safety band.",
-        "tone": "warning",
-    }
+        return UNCERTAINTY_COPY["familiarity_levels"]["moderate"]
+    return UNCERTAINTY_COPY["familiarity_levels"]["low"]
 
 def describe_driver(feature: str, impact: float, user_data: Dict, ranges: Dict[str, List[float]]) -> str:
     name = friendly_feature_name(feature)
@@ -915,6 +954,7 @@ def assessment():
                 driver_descriptions=[],
                 chart_data=None,
                 plan=session.get("stress_plan"),
+                uncertainty_copy=UNCERTAINTY_COPY,
             )
 
         numeric_errors = []
@@ -957,6 +997,7 @@ def assessment():
                 driver_descriptions=[],
                 chart_data=None,
                 plan=session.get("stress_plan"),
+                uncertainty_copy=UNCERTAINTY_COPY,
             )
 
         age = parsed_values["age"]
@@ -1088,6 +1129,7 @@ def assessment():
         driver_descriptions=driver_descriptions,
         chart_data=chart_data,
         plan=plan,
+        uncertainty_copy=UNCERTAINTY_COPY,
     )
 
 @app.route("/results", methods=["GET", "POST"])
