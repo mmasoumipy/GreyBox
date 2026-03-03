@@ -73,7 +73,7 @@
           {% for key, label in likert_gaais %}
             <div class="form-group">
               <label>{{ label }}</label>
-              <div class="field-hint">1 = strongly disagree, 7 = strongly agree.</div>
+              <div class="field-hint">1 = strongly disagree, 5 = strongly agree.</div>
               <div data-slider>
                 <input type="range" name="{{ key }}" min="{{ likert_core_min }}" max="{{ likert_core_max }}" step="1" value="{{ defaults.get(key, likert_core_default) }}" required>
                 <div class="slider-meta">

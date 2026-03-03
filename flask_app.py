@@ -30,7 +30,7 @@ from sklearn.ensemble import IsolationForest
 # ----------------------------
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
-app.permanent_session_lifetime = timedelta(minutes=5)
+app.permanent_session_lifetime = timedelta(minutes=30)
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # ----------------------------
@@ -1197,8 +1197,8 @@ def survey_step(step: int):
                 likert_gaais=LIKERT_GAAIS,
                 likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
                 likert_core_min=1,
-                likert_core_max=7,
-                likert_core_default=4,
+                likert_core_max=5,
+                likert_core_default=3,
                 likert_g2_min=1,
                 likert_g2_max=5,
                 likert_g2_default=3,
@@ -1299,8 +1299,8 @@ def survey_step(step: int):
         likert_gaais=LIKERT_GAAIS,
         likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
         likert_core_min=1,
-        likert_core_max=7,
-        likert_core_default=4,
+        likert_core_max=5,
+        likert_core_default=3,
         likert_g2_min=1,
         likert_g2_max=5,
         likert_g2_default=3,
