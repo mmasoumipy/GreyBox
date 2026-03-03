@@ -35,7 +35,7 @@
       </div>
       <div class="form-group">
         <label for="education">Highest education level</label>
-        <div class="field-hint">Select the highest level completed.</div>
+        <div class="field-hint">Select the highest level completed or ongoing.</div>
         <select name="education" id="education" required>
           <option value="" disabled {% if not defaults.get('education') %}selected{% endif %}>Select...</option>
           {% for opt in education_options or ["High school", "Associate degree", "Bachelor's degree", "Master's degree", "Doctorate", "Other"] %}
