@@ -118,7 +118,7 @@
       </div>
       <div class="form-group">
         <label for="screen_time_hr">Screen Time (hr/day)</label>
-        <div class="field-hint">Total screen hours per day.</div>
+        <div class="field-hint">Total screen hours per day for fun.</div>
         <input type="number" name="screen_time_hr" id="screen_time_hr" min="0" max="24" step="0.5" value="{{ defaults.get('screen_time_hr', '') }}" required>
       </div>
     </div>
@@ -132,7 +132,7 @@
       </div>
       <div class="form-group">
         <label for="social_interactions_count">Social Interactions (count/week)</label>
-        <div class="field-hint">Meaningful interactions per week.</div>
+        <div class="field-hint">Meaningful interactions per week (call, text, in-person).</div>
         <input type="number" name="social_interactions_count" id="social_interactions_count" min="0" max="50" step="1" value="{{ defaults.get('social_interactions_count', '') }}" required>
       </div>
       <div class="form-group">
@@ -203,8 +203,13 @@
     {% if group == "G2" %}
     <div class="card full-span chart-card" style="margin:0; height:100%;">
       <h4>Key Drivers</h4>
-      <div id="drivers_bar" style="height:380px;"></div>
-      <ul>
+      <p class="text-muted" style="margin-top:-6px;">
+        Bars show each factor’s share of influence among the top drivers (not a percent change in your risk).
+        Red pushes risk higher; green pushes it lower. It’s normal to see drivers in opposite directions, your overall score
+        is the net effect of all factors combined.
+      </p>
+      <div id="drivers_bar" style="height:420px; margin-bottom:12px;"></div>
+      <ul style="margin-top:8px;">
         {% for desc in driver_descriptions %}
           <li>{{ desc }}</li>
         {% endfor %}
@@ -345,19 +350,41 @@
   if (driversEl) {
     const drvNames = data.drivers.map(d => d.name);
     const drvVals = data.drivers.map(d => d.impact);
+    const drvAbs = drvVals.map(v => Math.abs(v));
+    const drvTotal = drvAbs.reduce((acc, v) => acc + v, 0);
+    const drvPct = drvAbs.map(v => (drvTotal > 0 ? (v / drvTotal) * 100 : 0));
+    const maxPct = Math.max(5, ...drvPct);
+    const signedPct = drvVals.map((v, i) => (v >= 0 ? 1 : -1) * drvPct[i]);
     Plotly.newPlot('drivers_bar', [{
       type: 'bar',
-      x: drvVals,
+      x: signedPct,
       y: drvNames,
       orientation: 'h',
       marker: {color: drvVals.map(v => v > 0 ? '#fca5a5' : '#a7f3d0')},
-      text: drvVals.map(v => v.toFixed(2)),
-      textposition: 'auto'
+      text: drvPct.map(v => `${v.toFixed(1)}%`),
+      textposition: 'auto',
+      textfont: {size: 13},
+      hovertext: drvVals.map(v => `${v > 0 ? "Increases" : "Decreases"} risk • impact ${v.toFixed(3)}`),
+      hoverinfo: 'text'
     }], {
-      height: 380,
-      margin: {l: 120, r: 10, t: 10, b: 20},
-      yaxis: {autorange: 'reversed'},
-      font:{family:"Source Sans Pro"}
+      height: 420,
+      margin: {l: 175, r: 6, t: 8, b: 8},
+      yaxis: {
+        autorange: 'reversed',
+        automargin: true,
+        ticklabelposition: "outside",
+        ticklabelstandoff: 24
+      },
+      xaxis: {
+        zeroline: true,
+        zerolinecolor: "#94a3b8",
+        zerolinewidth: 2,
+        range: [-maxPct, maxPct],
+        showticklabels: false,
+        ticks: ""
+      },
+      font:{family:"Source Sans Pro", size: 14},
+      bargap: 0.2
     });
   }
 </script>
