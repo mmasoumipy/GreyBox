@@ -202,16 +202,6 @@
               {% endfor %}
             </select>
           </div>
-          <div class="form-group">
-            <label for="q_system_preference">Which version of the system do you prefer: Basic or Advanced?</label>
-            <div class="field-hint">Choose the interface you preferred overall.</div>
-            <select name="q_system_preference" id="q_system_preference" required>
-              <option value="" disabled {% if not defaults.get('q_system_preference') %}selected{% endif %}>Select...</option>
-              {% for opt in system_preference_options %}
-                <option value="{{ opt }}" {% if defaults.get('q_system_preference', '') == opt %}selected{% endif %}>{{ opt }}</option>
-              {% endfor %}
-            </select>
-          </div>
         </div>
       </div>
 

@@ -1145,7 +1145,6 @@ EDUCATION_OPTIONS = [
 YES_NO_OPTIONS = ["No", "Yes"]
 AI_TOOL_FREQUENCY_OPTIONS = ["Never", "Occasionally", "Weekly", "Daily"]
 HEALTH_APP_FREQUENCY_OPTIONS = ["Never", "Monthly", "Weekly", "Daily"]
-SYSTEM_PREFERENCE_OPTIONS = ["Basic", "Advanced", "No preference"]
 WORK_IN_TECH_OPTIONS = ["Yes, tech and data", "Yes, healthcare", "No"]
 
 @app.route("/survey", methods=["GET"])
@@ -1178,7 +1177,6 @@ def survey_step(step: int):
         "q_ai_tool_frequency": "AI tool use frequency",
         "q_health_app_frequency": "Health app/wearable frequency",
         "q_attention_check_feature": "Attention check",
-        "q_system_preference": "System preference",
         "q_open_most_useful": "Most useful part",
         "q_open_unclear": "Unclear part",
         "q_open_suggestions": "Suggestions",
@@ -1204,7 +1202,6 @@ def survey_step(step: int):
         2: [],
         3: [
             "q_attention_check_feature",
-            "q_system_preference",
             "q_open_most_useful",
             "q_open_unclear",
             "q_open_suggestions",
@@ -1268,7 +1265,6 @@ def survey_step(step: int):
                 yes_no_options=YES_NO_OPTIONS,
                 ai_tool_frequency_options=AI_TOOL_FREQUENCY_OPTIONS,
                 health_app_frequency_options=HEALTH_APP_FREQUENCY_OPTIONS,
-                system_preference_options=SYSTEM_PREFERENCE_OPTIONS,
             )
         for field in step_fields.get(step, []):
             if field in [
@@ -1319,7 +1315,6 @@ def survey_step(step: int):
                 responses[key] = to_int(key, 3)
 
             responses["q_attention_check_feature"] = survey_form.get("q_attention_check_feature", driver_options[0])
-            responses["q_system_preference"] = survey_form.get("q_system_preference", "Basic")
 
             responses["q_open_most_useful"] = survey_form.get("q_open_most_useful", "")
             responses["q_open_unclear"] = survey_form.get("q_open_unclear", "")
@@ -1370,7 +1365,6 @@ def survey_step(step: int):
         yes_no_options=YES_NO_OPTIONS,
         ai_tool_frequency_options=AI_TOOL_FREQUENCY_OPTIONS,
         health_app_frequency_options=HEALTH_APP_FREQUENCY_OPTIONS,
-        system_preference_options=SYSTEM_PREFERENCE_OPTIONS,
     )
 
 @app.route("/plan/pdf", methods=["GET"])
