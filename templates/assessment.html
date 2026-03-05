@@ -121,10 +121,13 @@
     <div class="card full-span chart-card" style="margin:0; height:100%;">
       <h4>{{ uncertainty_copy.section_title }}</h4>
       <p class="text-muted">{{ uncertainty_copy.section_intro }}</p>
-      {% set conf_percent = 100 - (confidence.width * 100 * 2) %}
-      {% if conf_percent < 10 %}{% set conf_percent = 10 %}{% endif %}
-      {% if conf_percent > 90 %}{% set conf_percent = 90 %}{% endif %}
-      <div class="confidence-wrap" aria-label="Confidence scale from high to low">
+      {# Map uncertainty width to knob position. Width >= max_width pins left. #}
+      {% set max_width = 0.30 %}
+      {% set width_ratio = confidence.width / max_width %}
+      {% if width_ratio < 0 %}{% set width_ratio = 0 %}{% endif %}
+      {% if width_ratio > 1 %}{% set width_ratio = 1 %}{% endif %}
+      {% set conf_percent = 10 + (1 - width_ratio) * 80 %}
+      <div class="confidence-wrap" aria-label="Confidence scale from low to high">
         <div class="confidence-bar">
           <div class="confidence-knob" style="left: {{ conf_percent }}%;"></div>
         </div>

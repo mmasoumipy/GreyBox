@@ -335,8 +335,8 @@ UNCERTAINTY_COPY = {
     "section_title": "Model Confidence & Familiarity",
     "section_intro": "Confidence shows how stable your score is for people with similar answers. "
                      "Model familiarity shows how common your profile is in the data.",
-    "slider_left": "High confidence",
-    "slider_right": "Low confidence",
+    "slider_left": "Low confidence",
+    "slider_right": "High confidence",
     "confidence_helper": "Confidence shows how steady your result is.\nIf your score would stay similar even if you answered again, confidence is higher.",
     "range_helper": "Small day-to-day changes in your habits could shift your score by about ±{half_span}%.",
     "confidence_chip": "Stability",
@@ -1206,8 +1206,8 @@ def assessment():
             "upper_pct": hi * 100,
             "drivers": [{"name": d[0], "impact": d[1]} for d in drivers],
             "uncertainty": {
-                "aleatoric": float(pred["uncertainty"].get("aleatoric_std", 0.0)) * 100,
-                "epistemic": float(pred["uncertainty"].get("epistemic_std", 0.0)) * 100,
+                "aleatoric": float(pred["uncertainty"].get("aleatoric_std", 0.0)) ** 2,
+                "epistemic": float(pred["uncertainty"].get("epistemic_std", 0.0)) ** 2,
             },
         }
 
