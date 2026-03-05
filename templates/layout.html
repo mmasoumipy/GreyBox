@@ -546,7 +546,7 @@
     <div class="title">Stress Assessment</div>
     <nav>
       <a href="{{ url_for('ethics') }}" class="{% if request.endpoint == 'ethics' %}active{% endif %}">Ethics</a>
-      <a href="{{ url_for('assessment') }}" class="{% if request.endpoint == 'assessment' %}active{% endif %}">Stress Assessment</a>
+      <a href="{{ url_for('assessment') }}" class="{% if request.endpoint in ['assessment', 'pre_assessment'] %}active{% endif %}">Stress Assessment</a>
       <a href="{{ url_for('survey') }}" class="{% if request.endpoint in ['survey', 'survey_step', 'survey_thanks'] %}active{% endif %}">Post-Study Survey</a>
     </nav>
   </header>

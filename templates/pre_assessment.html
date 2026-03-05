@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card">
+  <h2 style="margin-top:0;">Before You Begin</h2>
+  <p class="text-text">Please answer a few demographic questions and the GAAIS-10 attitude items before starting the stress assessment.</p>
+  <form method="post">
+    <div class="section-title">Demographics</div>
+    <div class="q-grid">
+      <div class="form-group">
+        <label for="age">Age</label>
+        <div class="field-hint">How old are you?</div>
+        <input type="number" name="age" id="age" min="18" max="90" step="1" value="{{ defaults.get('age', '') }}" required>
+      </div>
+      <div class="form-group">
+        <label for="gender">Gender</label>
+        <div class="field-hint">Select the option that best fits.</div>
+        <select name="gender" id="gender" required>
+          <option value="" disabled {% if not defaults.get('gender') %}selected{% endif %}>Select...</option>
+          {% for opt in gender_choices %}
+            <option value="{{ opt }}" {% if defaults.get('gender','') == opt %}selected{% endif %}>{{ opt.title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="occupation">Occupation</label>
+        <div class="field-hint">Choose the closest match.</div>
+        <select name="occupation" id="occupation" required>
+          <option value="" disabled {% if not defaults.get('occupation') %}selected{% endif %}>Select...</option>
+          {% for opt in occupation_choices %}
+            <option value="{{ opt }}" {% if defaults.get('occupation','') == opt %}selected{% endif %}>{{ opt.title() }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="education">Highest education level</label>
+        <div class="field-hint">Select the highest level completed or ongoing.</div>
+        <select name="education" id="education" required>
+          <option value="" disabled {% if not defaults.get('education') %}selected{% endif %}>Select...</option>
+          {% for opt in education_options or ["High school", "Associate degree", "Bachelor's degree", "Master's degree", "Doctorate", "Other"] %}
+            <option value="{{ opt }}" {% if defaults.get('education','') == opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="work_in_tech">Do you work in tech, data, or healthcare?</label>
+        <div class="field-hint">Include data/healthcare-related roles.</div>
+        <select name="work_in_tech" id="work_in_tech" required>
+          <option value="" disabled {% if not defaults.get('work_in_tech') %}selected{% endif %}>Select...</option>
+          {% for opt in work_in_tech_options or ["Yes, tech and data", "Yes, healthcare", "No"] %}
+            <option value="{{ opt }}" {% if defaults.get('work_in_tech','') == opt %}selected{% endif %}>{{ opt }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top: 24px;">GAAIS-10</div>
+    <div class="q-grid slider-grid">
+      {% for key, label in likert_gaais %}
+        <div class="form-group">
+          <label>{{ label }}</label>
+          <div class="field-hint">1 = strongly disagree, 5 = strongly agree.</div>
+          <div data-slider>
+            <input type="range" name="{{ key }}" min="{{ likert_gaais_min }}" max="{{ likert_gaais_max }}" step="1" value="{{ defaults.get(key, likert_gaais_default) }}" required>
+            <div class="slider-meta">
+              <span class="slider-edge-left">{{ likert_gaais_min }}</span>
+              <span class="slider-current"></span>
+              <span class="slider-edge-right">{{ likert_gaais_max }}</span>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top: 28px; display:flex; gap:12px; flex-wrap:wrap;">
+      <button type="submit">Continue to Assessment</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const sliders = document.querySelectorAll("[data-slider]");
+  sliders.forEach((wrap) => {
+    const input = wrap.querySelector("input[type='range']");
+    const output = wrap.querySelector(".slider-current");
+    const update = () => {
+      const value = parseInt(input.value, 10);
+      const min = parseInt(input.min || "1", 10);
+      const max = parseInt(input.max || "5", 10);
+      const percent = ((value - min) / (max - min)) * 100;
+      output.textContent = value;
+      input.style.background = `linear-gradient(90deg, var(--primary) ${percent}%, #e1e7f5 ${percent}%)`;
+    };
+    input.addEventListener("input", update);
+    update();
+  });
+</script>
+{% endblock %}

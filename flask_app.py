@@ -844,7 +844,7 @@ def ethics():
     if request.method == "POST":
         session["ethics_ack"] = True
         session["ethics_ack_ts"] = datetime.utcnow().isoformat()
-        return redirect(url_for("assessment"))
+        return redirect(url_for("pre_assessment"))
     return render_template("ethics.html")
 
 def parse_form_value(name: str, cast_fn, default=None):
@@ -853,26 +853,163 @@ def parse_form_value(name: str, cast_fn, default=None):
     except Exception:
         return default
 
+@app.route("/pre-assessment", methods=["GET", "POST"])
+def pre_assessment():
+    if not session.get("ethics_ack"):
+        return redirect(url_for("ethics"))
+    group = session.get("group", "G1")
+    gender_choices = ARTS.cat_categories.get("gender", ["male", "female", "other"]) or ["male", "female", "other"]
+    occupation_choices = ARTS.cat_categories.get("occupation", ["engineer", "nurse", "student"]) or ["engineer", "nurse", "student"]
+    occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "unknown"]
+    lower_choices = [str(opt).lower() for opt in occupation_choices]
+    if "other" not in lower_choices:
+        occupation_choices.append("other")
+    if "teacher" not in lower_choices:
+        occupation_choices.append("teacher")
+    if "professor" not in lower_choices:
+        occupation_choices.append("professor")
+    occupation_choices = order_occupations(occupation_choices)
+
+    defaults = {
+        **(session.get("current_demographics") or {}),
+        **(session.get("gaais_responses") or {}),
+        **(session.get("pre_assessment_defaults") or {}),
+    }
+
+    if request.method == "POST":
+        required_fields = {
+            "age": "Age",
+            "gender": "Gender",
+            "occupation": "Occupation",
+            "education": "Highest education level",
+            "work_in_tech": "Work in tech/data/healthcare",
+        }
+        for key, label in LIKERT_GAAIS:
+            required_fields[key] = label
+
+        missing = [label for key, label in required_fields.items() if not request.form.get(key)]
+        if missing:
+            for label in missing:
+                flash(f"{label} is required.", "error")
+            session["pre_assessment_defaults"] = request.form.to_dict()
+            defaults = request.form.to_dict()
+            return render_template(
+                "pre_assessment.html",
+                gender_choices=gender_choices,
+                occupation_choices=occupation_choices,
+                education_options=EDUCATION_OPTIONS,
+                yes_no_options=YES_NO_OPTIONS,
+                work_in_tech_options=WORK_IN_TECH_OPTIONS,
+                likert_gaais=LIKERT_GAAIS,
+                likert_gaais_min=1,
+                likert_gaais_max=5,
+                likert_gaais_default=3,
+                defaults=defaults,
+                user_id=session.get("user_id"),
+            )
+
+        numeric_constraints = {"age": (int, 18, 90)}
+        numeric_errors = []
+        parsed_values = {}
+        for name, (cast_fn, min_value, max_value) in numeric_constraints.items():
+            raw = request.form.get(name, "")
+            try:
+                value = cast_fn(raw)
+            except Exception:
+                numeric_errors.append(
+                    f"{required_fields[name]} must be a number between {min_value} and {max_value}."
+                )
+                continue
+            if value < min_value or value > max_value:
+                numeric_errors.append(
+                    f"{required_fields[name]} must be between {min_value} and {max_value}."
+                )
+                continue
+            parsed_values[name] = value
+
+        if numeric_errors:
+            for message in numeric_errors:
+                flash(message, "error")
+            session["pre_assessment_defaults"] = request.form.to_dict()
+            defaults = request.form.to_dict()
+            return render_template(
+                "pre_assessment.html",
+                gender_choices=gender_choices,
+                occupation_choices=occupation_choices,
+                education_options=EDUCATION_OPTIONS,
+                yes_no_options=YES_NO_OPTIONS,
+                work_in_tech_options=WORK_IN_TECH_OPTIONS,
+                likert_gaais=LIKERT_GAAIS,
+                likert_gaais_min=1,
+                likert_gaais_max=5,
+                likert_gaais_default=3,
+                defaults=defaults,
+                user_id=session.get("user_id"),
+            )
+
+        age = parsed_values["age"]
+        gender = request.form.get("gender", "female")
+        occupation = request.form.get("occupation", "engineer")
+        education = request.form.get("education", "")
+        work_in_tech = request.form.get("work_in_tech", "")
+        demographics = {
+            "age": age,
+            "gender": gender,
+            "occupation": occupation,
+            "education": education,
+            "work_in_tech": work_in_tech,
+        }
+        gaais_responses = {}
+        for key, _ in LIKERT_GAAIS:
+            try:
+                gaais_responses[key] = int(request.form.get(key, 3))
+            except Exception:
+                gaais_responses[key] = 3
+
+        session["current_demographics"] = demographics
+        session["gaais_responses"] = gaais_responses
+        session["pre_assessment_complete"] = True
+        session.pop("pre_assessment_defaults", None)
+
+        get_log().append({
+            "timestamp": datetime.utcnow().isoformat(),
+            "event": "pre_assessment_completed",
+            "user_id": session.get("user_id"),
+            "group": group,
+            "demographics": demographics,
+            "gaais": gaais_responses,
+        })
+
+        return redirect(url_for("assessment"))
+
+    return render_template(
+        "pre_assessment.html",
+        gender_choices=gender_choices,
+        occupation_choices=occupation_choices,
+        education_options=EDUCATION_OPTIONS,
+        yes_no_options=YES_NO_OPTIONS,
+        work_in_tech_options=WORK_IN_TECH_OPTIONS,
+        likert_gaais=LIKERT_GAAIS,
+        likert_gaais_min=1,
+        likert_gaais_max=5,
+        likert_gaais_default=3,
+        defaults=defaults,
+        user_id=session.get("user_id"),
+    )
+
 WEEKS_PER_MONTH = 52 / 12
 
 @app.route("/assessment", methods=["GET", "POST"])
 def assessment():
     if not session.get("ethics_ack"):
         return redirect(url_for("ethics"))
+    demographics = session.get("current_demographics") or {}
+    gaais_responses = session.get("gaais_responses") or {}
+    if "age" not in demographics or not gaais_responses:
+        return redirect(url_for("pre_assessment"))
     group = session.get("group", "G1")
     defaults = session.get("form_defaults", {})
     if request.method == "POST":
-        gender_choices = ARTS.cat_categories.get("gender", ["male", "female", "other"]) or ["male", "female", "other"]
-        occupation_choices = ARTS.cat_categories.get("occupation", ["engineer", "nurse", "student"]) or ["engineer", "nurse", "student"]
-        occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "unknown"]
-        lower_choices = [str(opt).lower() for opt in occupation_choices]
-        if "other" not in lower_choices:
-            occupation_choices.append("other")
-        if "teacher" not in lower_choices:
-            occupation_choices.append("teacher")
-        if "professor" not in lower_choices:
-            occupation_choices.append("professor")
-        occupation_choices = order_occupations(occupation_choices)
         action = request.form.get("action")
         if action == "plan":
             pred = session.get("current_prediction")
@@ -892,11 +1029,6 @@ def assessment():
             return redirect(url_for("assessment") + "#plan")
 
         required_fields = {
-            "age": "Age",
-            "gender": "Gender",
-            "occupation": "Occupation",
-            "education": "Highest education level",
-            "work_in_tech": "Work in tech/data/healthcare",
             "work_hours_per_week": "Work Hours / Week",
             "job_satisfaction": "Job Satisfaction",
             "workload_rating": "Workload Rating",
@@ -914,7 +1046,6 @@ def assessment():
             "screen_unlocks_per_day": "Screen Unlocks / Day",
         }
         numeric_constraints = {
-            "age": (int, 18, 90),
             "work_hours_per_week": (int, 0, 120),
             "job_satisfaction": (int, 1, 10),
             "workload_rating": (int, 1, 10),
@@ -939,11 +1070,6 @@ def assessment():
             return render_template(
                 "assessment.html",
                 group=group,
-                gender_choices=gender_choices,
-                occupation_choices=occupation_choices,
-                education_options=EDUCATION_OPTIONS,
-                yes_no_options=YES_NO_OPTIONS,
-                work_in_tech_options=WORK_IN_TECH_OPTIONS,
                 defaults=defaults,
                 user_id=session.get("user_id"),
                 pred=session.get("current_prediction"),
@@ -982,11 +1108,6 @@ def assessment():
             return render_template(
                 "assessment.html",
                 group=group,
-                gender_choices=gender_choices,
-                occupation_choices=occupation_choices,
-                education_options=EDUCATION_OPTIONS,
-                yes_no_options=YES_NO_OPTIONS,
-                work_in_tech_options=WORK_IN_TECH_OPTIONS,
                 defaults=defaults,
                 user_id=session.get("user_id"),
                 pred=session.get("current_prediction"),
@@ -1000,11 +1121,11 @@ def assessment():
                 uncertainty_copy=UNCERTAINTY_COPY,
             )
 
-        age = parsed_values["age"]
-        gender = request.form.get("gender", "female")
-        occupation = request.form.get("occupation", "engineer")
-        education = request.form.get("education", "")
-        work_in_tech = request.form.get("work_in_tech", "")
+        age = demographics.get("age", 30)
+        gender = demographics.get("gender", "female")
+        occupation = demographics.get("occupation", "engineer")
+        education = demographics.get("education", "")
+        work_in_tech = demographics.get("work_in_tech", "")
         work_hours = parsed_values["work_hours_per_week"]
         job_satisfaction = parsed_values["job_satisfaction"]
         workload = parsed_values["workload_rating"]
@@ -1042,22 +1163,11 @@ def assessment():
             "social_interactions_count": social,
             "screen_unlocks_per_day": screen_unlocks
         }
-        demographics = {
-            "age": age,
-            "gender": gender,
-            "occupation": occupation,
-            "education": education,
-            "work_in_tech": work_in_tech,
-        }
-
         pred = predict_user(user_data)
         session["current_prediction"] = pred
         session["current_user"] = user_data
-        session["current_demographics"] = demographics
         session["form_defaults"] = {
             **user_data,
-            "education": education,
-            "work_in_tech": work_in_tech,
             "alcohol_intake_per_month": alcohol_month,
         }
 
@@ -1073,17 +1183,6 @@ def assessment():
         session.pop("stress_plan", None)
         return redirect(url_for("assessment") + "#results")
 
-    gender_choices = ARTS.cat_categories.get("gender", ["male", "female", "other"]) or ["male", "female", "other"]
-    occupation_choices = ARTS.cat_categories.get("occupation", ["engineer", "nurse", "student"]) or ["engineer", "nurse", "student"]
-    occupation_choices = [opt for opt in occupation_choices if str(opt).lower() != "unknown"]
-    lower_choices = [str(opt).lower() for opt in occupation_choices]
-    if "other" not in lower_choices:
-        occupation_choices.append("other")
-    if "teacher" not in lower_choices:
-        occupation_choices.append("teacher")
-    if "professor" not in lower_choices:
-        occupation_choices.append("professor")
-    occupation_choices = order_occupations(occupation_choices)
     pred = session.get("current_prediction")
     user_data = session.get("current_user")
     plan = session.get("stress_plan")
@@ -1114,11 +1213,6 @@ def assessment():
     return render_template(
         "assessment.html",
         group=group,
-        gender_choices=gender_choices,
-        occupation_choices=occupation_choices,
-        education_options=EDUCATION_OPTIONS,
-        yes_no_options=YES_NO_OPTIONS,
-        work_in_tech_options=WORK_IN_TECH_OPTIONS,
         defaults=defaults,
         user_id=session.get("user_id"),
         pred=pred,
@@ -1260,9 +1354,6 @@ def survey_step(step: int):
         if "back" in request.form:
             for field in step_fields.get(step, []):
                 survey_form[field] = request.form.get(field, "")
-            if step == 1:
-                for key, _ in LIKERT_GAAIS:
-                    survey_form[key] = request.form.get(key, "")
             if step == 2:
                 for key, _ in LIKERT_CORE:
                     survey_form[key] = request.form.get(key, "")
@@ -1273,8 +1364,6 @@ def survey_step(step: int):
             return redirect(url_for("survey_step", step=max(1, step - 1)))
 
         required_fields = list(step_fields.get(step, []))
-        if step == 1:
-            required_fields.extend([key for key, _ in LIKERT_GAAIS])
         if step == 2:
             required_fields.extend([key for key, _ in LIKERT_CORE])
         if step == 3 and group == "G2":
@@ -1290,15 +1379,10 @@ def survey_step(step: int):
                 group=group,
                 driver_options=driver_options,
                 likert_core=LIKERT_CORE,
-                likert_gaais=LIKERT_GAAIS,
                 likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
-                likert_core_min=1,
-                likert_core_max=5,
-                likert_core_default=3,
                 likert_g2_min=1,
                 likert_g2_max=5,
                 likert_g2_default=3,
-                demographics=session.get("current_demographics") or {},
                 user_id=session.get("user_id"),
                 step=step,
                 total_steps=total_steps,
@@ -1320,10 +1404,6 @@ def survey_step(step: int):
                 survey_form[field] = request.form.get(field, "")
             else:
                 survey_form[field] = request.form.get(field, "")
-
-        if step == 1:
-            for key, _ in LIKERT_GAAIS:
-                survey_form[key] = request.form.get(key, "")
 
         if step == 2:
             for key, _ in LIKERT_CORE:
@@ -1349,8 +1429,6 @@ def survey_step(step: int):
 
             responses["q_ai_knowledge"] = to_int("q_ai_knowledge", 3)
             responses["q_ai_tool_frequency"] = survey_form.get("q_ai_tool_frequency", "Never")
-            for key, _ in LIKERT_GAAIS:
-                responses[key] = to_int(key, 3)
             responses["q_health_app_frequency"] = survey_form.get("q_health_app_frequency", "Never")
 
             for key, _ in LIKERT_CORE:
@@ -1368,6 +1446,10 @@ def survey_step(step: int):
                 responses["q_open_uncertainty_impact"] = survey_form.get("q_open_uncertainty_impact", "")
                 responses["q_open_uncertainty_transparency"] = survey_form.get("q_open_uncertainty_transparency", "")
                 responses["q_open_uncertainty_confidence"] = survey_form.get("q_open_uncertainty_confidence", "")
+
+            gaais_responses = session.get("gaais_responses") or {}
+            for key, _ in LIKERT_GAAIS:
+                responses[key] = int(gaais_responses.get(key, 3))
 
             get_log().append({
                 "timestamp": datetime.utcnow().isoformat(),
@@ -1390,15 +1472,10 @@ def survey_step(step: int):
         group=group,
         driver_options=driver_options,
         likert_core=LIKERT_CORE,
-        likert_gaais=LIKERT_GAAIS,
         likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
-        likert_core_min=1,
-        likert_core_max=5,
-        likert_core_default=3,
         likert_g2_min=1,
         likert_g2_max=5,
         likert_g2_default=3,
-        demographics=session.get("current_demographics") or {},
         user_id=session.get("user_id"),
         step=step,
         total_steps=total_steps,
