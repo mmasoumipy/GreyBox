@@ -290,10 +290,9 @@ if st.session_state["view_mode"] == "participant" and not st.session_state["pre_
     st.caption("Before you start, please answer these to tailor the experience.")
 
     with st.form("pre_study_info"):
-        works_in_tech = st.selectbox(
-            "Do you work in tech/data/healthcare?",
-            ["No", "Yes", "Prefer not to say"],
-            index=0
+        field_of_study_work = st.text_input(
+            "Field of study/work",
+            placeholder="Ex: Computer science, nursing, finance, education"
         )
         ai_familiarity = st.select_slider(
             "Familiarity with AI systems (1–5)",
@@ -309,7 +308,7 @@ if st.session_state["view_mode"] == "participant" and not st.session_state["pre_
 
     if pre_submit:
         st.session_state["pre_info_answers"] = {
-            "works_in_tech_data_healthcare": works_in_tech,
+            "field_of_study_work": field_of_study_work,
             "ai_familiarity": ai_familiarity,
             "health_app_use": health_app_use,
         }
@@ -1189,11 +1188,11 @@ def render_admin_dashboard(df: pd.DataFrame, arts: Artifacts):
     ]
     if pre_entries:
         pre_df = pd.DataFrame([e["pre_info"] | {"user_id": e.get("user_id"), "group": e.get("group")} for e in pre_entries])
-        summary_cols = ["works_in_tech_data_healthcare", "ai_familiarity", "health_app_use"]
+        summary_cols = ["field_of_study_work", "ai_familiarity", "health_app_use"]
         col_a, col_b, col_c = st.columns(3)
-        if "works_in_tech_data_healthcare" in pre_df.columns:
-            counts = pre_df["works_in_tech_data_healthcare"].value_counts().rename_axis("Answer").reset_index(name="Count")
-            col_a.markdown("**Do you work in tech/data/healthcare?**")
+        if "field_of_study_work" in pre_df.columns:
+            counts = pre_df["field_of_study_work"].value_counts().rename_axis("Answer").reset_index(name="Count")
+            col_a.markdown("**Field of study/work**")
             col_a.dataframe(counts, use_container_width=True, height=180)
         if "ai_familiarity" in pre_df.columns:
             counts = pre_df["ai_familiarity"].value_counts().sort_index().rename_axis("Familiarity (1–5)").reset_index(name="Count")
@@ -1997,11 +1996,10 @@ if st.session_state.get("current_page") == "Survey":
                 ["High school", "Associate degree", "Bachelor's degree", "Master's degree", "Doctorate", "Other"],
                 key="q_demo_education"
             )
-            responses["q_demo_work_in_tech"] = st.radio(
-                "Do you work in tech, data, or healthcare?",
-                ["No", "Yes"],
-                index=0 if str(demo_defaults.get("works_in_tech_data_healthcare", "No")).lower().startswith("n") else 1,
-                key="q_demo_work_in_tech"
+            responses["q_demo_field_of_study_work"] = st.text_input(
+                "Field of study/work",
+                value=str(demo_defaults.get("field_of_study_work", "")),
+                key="q_demo_field_of_study_work"
             )
 
             st.subheader("2 - Health & Stress Context")

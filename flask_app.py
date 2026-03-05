@@ -883,7 +883,7 @@ def pre_assessment():
             "gender": "Gender",
             "occupation": "Occupation",
             "education": "Highest education level",
-            "work_in_tech": "Work in tech/data/healthcare",
+            "field_of_study_work": "Field of study/work",
         }
         for key, label in LIKERT_GAAIS:
             required_fields[key] = label
@@ -900,7 +900,6 @@ def pre_assessment():
                 occupation_choices=occupation_choices,
                 education_options=EDUCATION_OPTIONS,
                 yes_no_options=YES_NO_OPTIONS,
-                work_in_tech_options=WORK_IN_TECH_OPTIONS,
                 likert_gaais=LIKERT_GAAIS,
                 likert_gaais_min=1,
                 likert_gaais_max=5,
@@ -939,7 +938,6 @@ def pre_assessment():
                 occupation_choices=occupation_choices,
                 education_options=EDUCATION_OPTIONS,
                 yes_no_options=YES_NO_OPTIONS,
-                work_in_tech_options=WORK_IN_TECH_OPTIONS,
                 likert_gaais=LIKERT_GAAIS,
                 likert_gaais_min=1,
                 likert_gaais_max=5,
@@ -952,13 +950,13 @@ def pre_assessment():
         gender = request.form.get("gender", "female")
         occupation = request.form.get("occupation", "engineer")
         education = request.form.get("education", "")
-        work_in_tech = request.form.get("work_in_tech", "")
+        field_of_study_work = request.form.get("field_of_study_work", "").strip()
         demographics = {
             "age": age,
             "gender": gender,
             "occupation": occupation,
             "education": education,
-            "work_in_tech": work_in_tech,
+            "field_of_study_work": field_of_study_work,
         }
         gaais_responses = {}
         for key, _ in LIKERT_GAAIS:
@@ -989,7 +987,6 @@ def pre_assessment():
         occupation_choices=occupation_choices,
         education_options=EDUCATION_OPTIONS,
         yes_no_options=YES_NO_OPTIONS,
-        work_in_tech_options=WORK_IN_TECH_OPTIONS,
         likert_gaais=LIKERT_GAAIS,
         likert_gaais_min=1,
         likert_gaais_max=5,
@@ -1126,7 +1123,6 @@ def assessment():
         gender = demographics.get("gender", "female")
         occupation = demographics.get("occupation", "engineer")
         education = demographics.get("education", "")
-        work_in_tech = demographics.get("work_in_tech", "")
         work_hours = parsed_values["work_hours_per_week"]
         job_satisfaction = parsed_values["job_satisfaction"]
         workload = parsed_values["workload_rating"]
@@ -1282,7 +1278,6 @@ EDUCATION_OPTIONS = [
 YES_NO_OPTIONS = ["No", "Yes"]
 AI_TOOL_FREQUENCY_OPTIONS = ["Never", "Occasionally", "Weekly", "Daily"]
 HEALTH_APP_FREQUENCY_OPTIONS = ["Never", "Monthly", "Weekly", "Daily"]
-WORK_IN_TECH_OPTIONS = ["Yes, tech and data", "Yes, healthcare", "No"]
 
 @app.route("/survey", methods=["GET"])
 def survey():
