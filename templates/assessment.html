@@ -159,6 +159,7 @@
     <div class="card full-span chart-card" style="margin:0; height:100%;">
       <h4>Stress Risk</h4>
       <div id="gauge" style="height:400px; max-width:520px; width:100%; margin:0 auto;"></div>
+      <p class="text-muted">How this score is calculated: an AI model analyzes your responses (workload, sleep, health, and lifestyle factors) and compares them with patterns learned from prior assessment data to estimate your stress risk level. This is a statistical estimate for guidance, not a medical diagnosis.</p>
       {% if group == "G1" %}
         <p class="text-muted">Basic view. Lower is better.</p>
         {% if risk < 0.33 %}<div class="flash success">✅ Low Stress Risk</div>{% elif risk < 0.66 %}<div class="flash info">ℹ️ Moderate Stress Risk</div>{% else %}<div class="flash error">⚠️ High Stress Risk</div>{% endif %}
