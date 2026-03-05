@@ -149,7 +149,8 @@
         </div>
       </div>
       <div class="subcard" style="margin:0 0 12px;">
-        <div style="font-weight:600; margin-bottom:8px;">{{ uncertainty_copy.variance_title }}</div>
+        <div style="font-weight:600; margin-bottom:8px;">{{ uncertainty_copy.variance_title }}:</div>
+        <div class="text-muted" style="margin-bottom:8px;">{{ uncertainty_copy.variance_intro }}</div>
         {% if chart_data and chart_data.uncertainty and chart_data.uncertainty.aleatoric is not none and chart_data.uncertainty.epistemic is not none %}
           {% set a_val = chart_data.uncertainty.aleatoric %}
           {% set e_val = chart_data.uncertainty.epistemic %}
@@ -211,7 +212,7 @@
 
 <div class="card" id="plan">
   <h3>Personalized Plan</h3>
-  <p class="text-muted" style="margin-top: -6px;">Step 1: Generate your plan.</p>
+  <p class="text-muted" style="margin-top: -6px;">Step 1: Generate your plan to help reduce stress and burnout risk.</p>
   <form method="post">
     <input type="hidden" name="action" value="plan">
     <button type="submit" id="generate-plan-button" data-loading-text="Generating your plan...">

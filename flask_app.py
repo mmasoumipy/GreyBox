@@ -378,12 +378,13 @@ UNCERTAINTY_COPY = {
         "Aleatoric: natural life variability that cannot be fully reduced.",
         "Epistemic: model uncertainty that can shrink as we collect more similar data.",
     ],
-    "variance_title": "Why your score may vary",
-    "variance_row_aleatoric": "Everyday variation (sleep, mood, unexpected events)",
-    "variance_row_epistemic": "The system has seen fewer people very similar to you.",
+    "variance_title": "What could affect your stress score",
+    "variance_intro": "The main factors that could affect your specific score are:",
+    "variance_row_aleatoric": "Daily life changes (sleep, mood, unexpected events)",
+    "variance_row_epistemic": "Fewer similar profiles in the data",
     "variance_fallback_a": "Some variation comes from real-life factors we can’t fully predict.",
     "variance_fallback_b": "Some variation comes from having fewer highly similar cases in our data.",
-    "variance_total": "Overall, your score may vary by about ±{half_span}%.",
+    "variance_total": "Your score could vary by about ±{half_span}%.",
 }
 
 def interpret_confidence(lower: float, upper: float) -> Dict[str, str]:
