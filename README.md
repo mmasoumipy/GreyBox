@@ -7,6 +7,17 @@
 
 A comprehensive machine learning system for assessing occupational stress risk using ensemble learning, calibrated uncertainty quantification, and explainable AI. Includes a research-ready web interface for conducting two-group studies on AI transparency and user trust.
 
+## ✅ Project Goal And Approach
+
+**Goal**
+Provide a stress risk estimate that is interpretable, calibrated, and honest about uncertainty, while enabling research on how explanation detail affects user trust.
+
+**How We Do It**
+1. Collect 30 lifestyle and health features per participant.
+2. Train a 5-model LightGBM ensemble and calibrate probabilities.
+3. Compute conformal prediction intervals and decompose uncertainty.
+4. Surface explanations and uncertainty in a controlled G1 vs. G2 study UI.
+
 ## 🎯 Features
 
 ### Machine Learning
@@ -227,6 +238,46 @@ python analyze_study.py         # CLI version
 - **Aleatoric Uncertainty**: Data randomness (can't reduce)
 - **Epistemic Uncertainty**: Model uncertainty (reduces with more data)
 - **Conformal Prediction**: Coverage guarantee for intervals
+
+### Uncertainty Calculation (Implementation Details)
+Uncertainty is computed at inference time in `flask_app.py` using the calibrated ensemble outputs and conformal parameters saved in `artifacts/conformal.json`.
+
+**Algorithm (per user):**
+1. **Prepare features**: Numeric fields are coerced and median-imputed; categorical fields are normalized and matched to training categories.
+2. **Ensemble prediction**: Each calibrated model outputs a probability `p_i`.
+3. **Point estimate**: `p_mean = mean(p_i)`
+4. **Epistemic uncertainty**: `p_std = std(p_i)` across ensemble members.
+5. **Aleatoric uncertainty**: `aleatoric = mean(p_i * (1 - p_i))`
+6. **Total scale**:  
+   `total_scale = sqrt(aleatoric + p_std^2 + conformal_eps)`
+7. **Conformal interval half-width**:  
+   `delta = conformal_q * total_scale`
+8. **Prediction interval**:  
+   `lo = max(0, p_mean - delta)`  
+   `hi = min(1, p_mean + delta)`
+
+**Confidence (Stability) used in the UI:**
+- Interval width `width = hi - lo`
+- High stability if `width <= 0.10`
+- Moderate stability if `width <= 0.20`
+- Low stability otherwise
+
+**Model familiarity (coverage signal):**
+- If OOD detector flags the user, familiarity is **Limited**
+- Otherwise based on width:
+  - High if `width <= 0.12`
+  - Moderate if `width <= 0.20`
+  - Limited otherwise
+
+**OOD detection:**
+- A scaled numeric subset is scored by an Isolation Forest.
+- `ood_flag = (score < -0.1)` marks the profile as out-of-distribution.
+
+### How Uncertainty Is Shown In The UI (G2 Only)
+- **Confidence slider**: Maps interval width to a low→high stability position.
+- **Range helper text**: Reports approximate ±% swing derived from `width`.
+- **Aleatoric vs. epistemic split**: Shown as a breakdown of uncertainty sources.
+- **Model familiarity chip**: Highlights when the profile is rare or OOD.
 
 ### Feature Importance
 - **SHAP Values**: Local feature contributions per sample
