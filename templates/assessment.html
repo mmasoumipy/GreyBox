@@ -119,95 +119,130 @@
 
     {% if group == "G2" %}
     <div class="card full-span chart-card" style="margin:0; height:100%;">
-      <h4>{{ uncertainty_copy.section_title }}</h4>
-      <p class="text-muted">{{ uncertainty_copy.section_intro }}</p>
-      {# Map uncertainty width to knob position. Width >= max_width pins left. #}
+      <h4 style="margin-bottom:4px;">Model Confidence &amp; Familiarity</h4>
+      <p class="text-muted" style="margin:0 0 14px;">How certain the AI is about your result, and how well your profile matches what it has learned from.</p>
+
+      {# Compute shared values #}
+      {% set half_span = (confidence.width * 50)|round(1) %}
       {% set max_width = 0.30 %}
       {% set width_ratio = confidence.width / max_width %}
       {% if width_ratio < 0 %}{% set width_ratio = 0 %}{% endif %}
       {% if width_ratio > 1 %}{% set width_ratio = 1 %}{% endif %}
       {% set conf_percent = 10 + (1 - width_ratio) * 80 %}
-      <div class="confidence-wrap" aria-label="Confidence scale from low to high">
-        <div class="confidence-bar">
-          <div class="confidence-knob" style="left: {{ conf_percent }}%;"></div>
+      {% set conf_tier = 'high' if confidence.width <= 0.10 else ('moderate' if confidence.width <= 0.20 else 'low') %}
+      {% set fam_tier = 'high' if coverage.tone == 'success' else ('moderate' if coverage.tone == 'info' else 'low') %}
+      {% set filled_count = 9 if fam_tier == 'high' else (6 if fam_tier == 'moderate' else 3) %}
+
+      {# --- Confidence Score (full width) --- #}
+      <div class="ci-metric ci-metric-full">
+        <div class="ci-metric-header">
+          <span class="ci-metric-title">AI Confidence</span>
+          <span class="ci-badge ci-badge-{{ conf_tier }}">{{ confidence.level }}</span>
         </div>
-        <div class="confidence-labels">
-          <span>{{ uncertainty_copy.slider_left }}</span>
-          <span>{{ uncertainty_copy.slider_right }}</span>
-        </div>
-      </div>
-      <div class="text-muted" style="margin-top:8px;">{{ uncertainty_copy.confidence_helper|replace('\n','<br>')|safe }}</div>
-      {% set half_span = (confidence.width * 50)|round(1) %}
-      <div class="confidence-helper">{{ uncertainty_copy.range_helper.format(half_span=half_span) }}</div>
-      <div class="subcard" style="margin:14px 0 12px;">
-        <div class="info-row" style="margin-bottom:8px;">
-          <span class="chip">{{ uncertainty_copy.confidence_chip }}</span>
-          <div><strong>{{ uncertainty_copy.confidence_chip }}:</strong> {{ confidence.level }}<br><span class="text-muted">{{ confidence.explanation }}</span></div>
-        </div>
-        <div class="info-row">
-          <span class="chip">{{ uncertainty_copy.familiarity_chip }}</span>
-          <div>
-            <strong>{{ coverage.label }}</strong> – {{ coverage.message }}
+        <div class="ci-slider-wrap" aria-label="Confidence scale from low to high">
+          <div class="confidence-bar" style="margin:10px 0 4px;">
+            <div class="confidence-knob" style="left: {{ conf_percent }}%;"></div>
+          </div>
+          <div class="ci-slider-labels">
+            <span>Less certain</span>
+            <span class="ci-swing-value">&#177;{{ half_span }}%</span>
+            <span>More certain</span>
           </div>
         </div>
+        <p class="ci-desc">Your score could shift by up to &#177;{{ half_span }}%. The AI found {{ "strong" if conf_tier == "high" else ("moderate" if conf_tier == "moderate" else "limited") }} pattern matches for your profile.</p>
+        <p class="ci-desc" style="margin-top:6px; border-top:1px solid #e8ecf4; padding-top:8px;">This tells you how much you can trust the prediction if your input data changes slightly.</p>
       </div>
-      <div class="subcard" style="margin:0 0 12px;">
-        <div style="font-weight:600; margin-bottom:8px;">{{ uncertainty_copy.variance_title }}:</div>
-        <div class="text-muted" style="margin-bottom:8px;">{{ uncertainty_copy.variance_intro }}</div>
-        {% if chart_data and chart_data.uncertainty and chart_data.uncertainty.aleatoric is not none and chart_data.uncertainty.epistemic is not none %}
+
+      <div class="ci-grid" style="grid-template-columns: repeat(2, 1fr);">
+
+        {# --- Why uncertainty exists --- #}
+        {% if chart_data and chart_data.uncertainty and chart_data.uncertainty.aleatoric is not none %}
           {% set a_val = chart_data.uncertainty.aleatoric %}
           {% set e_val = chart_data.uncertainty.epistemic %}
           {% set total_val = a_val + e_val %}
           {% if total_val > 0 %}
-            {% set a_pct = ((a_val / total_val) * 100)|round(1) %}
-            {% set e_pct = ((e_val / total_val) * 100)|round(1) %}
-          {% else %}
-            {% set a_pct = 0 %}
-            {% set e_pct = 0 %}
+            {% set a_pct = ((a_val / total_val) * 100)|round(0)|int %}
+            {% set e_pct = ((e_val / total_val) * 100)|round(0)|int %}
+            <div class="ci-metric">
+              <div class="ci-metric-header">
+                <span class="ci-metric-title">Why uncertainty exists</span>
+              </div>
+              <div class="ci-breakdown-bar" style="margin:14px 0 10px; height:16px; border-radius:999px;">
+                <div class="ci-seg ci-seg-aleatoric" style="width:{{ a_pct }}%;"></div>
+                <div class="ci-seg ci-seg-epistemic" style="width:{{ e_pct }}%;"></div>
+              </div>
+              <div class="ci-breakdown-legend" style="flex-direction:column; gap:10px;">
+                <div>
+                  <span class="ci-dot ci-dot-a"></span>
+                  <strong>{{ a_pct }}% - Your lifestyle variability</strong>
+                  <div style="font-size:13px; color:#64748b; margin:2px 0 0 16px;">Natural day-to-day changes in your habits and behaviors.</div>
+                </div>
+                <div>
+                  <span class="ci-dot ci-dot-e"></span>
+                  <strong>{{ e_pct }}% - AI knowledge gaps</strong>
+                  <div style="font-size:13px; color:#64748b; margin:2px 0 0 16px;">Patterns the model hasn't encountered enough of yet.</div>
+                </div>
+              </div>
+            </div>
           {% endif %}
-          <div class="info-row" style="margin-bottom:6px;">
-            <div>{{ uncertainty_copy.variance_row_aleatoric }}</div>
-            <div><strong>{{ a_pct }}%</strong></div>
-          </div>
-          <div class="info-row">
-            <div>{{ uncertainty_copy.variance_row_epistemic }}</div>
-            <div><strong>{{ e_pct }}%</strong></div>
-          </div>
-        {% else %}
-          <div class="text-muted" style="margin-bottom:6px;">{{ uncertainty_copy.variance_fallback_a }}</div>
-          <div class="text-muted">{{ uncertainty_copy.variance_fallback_b }}</div>
         {% endif %}
-        <div class="text-muted" style="margin-top:8px;">
-          {{ uncertainty_copy.variance_total.format(half_span=half_span) }}
-        </div>
-      </div>
-      <details class="info-row">
-        <summary class="text-muted" aria-label="{{ uncertainty_copy.learn_more_title }}">{{ uncertainty_copy.learn_more_title }}</summary>
-        <div class="text-muted" style="margin-top:8px;">
-          <ul style="margin:0; padding-left:18px;">
-            {% for item in uncertainty_copy.learn_more_items %}
-              <li>{{ item }}</li>
+
+        {# --- Profile Familiarity --- #}
+        <div class="ci-metric">
+          <div class="ci-metric-header">
+            <span class="ci-metric-title">Profile Familiarity</span>
+            <span class="ci-badge ci-badge-{{ fam_tier }}">{{ coverage.label }}</span>
+          </div>
+          <p class="ci-desc" style="margin-top:10px;">This tells you how much you can trust the prediction based on how similar your data is to other people's data the AI has seen before.</p>
+          <p class="ci-desc" style="margin-top:6px;">
+            {% if fam_tier == 'high' %}
+              Your profile closely matches known patterns - the prediction is more reliable.
+            {% elif fam_tier == 'moderate' %}
+              Your profile is somewhat similar to known patterns - the result is reasonably reliable.
+            {% else %}
+              Your profile is less common in the training data - treat this result with more caution.
+            {% endif %}
+          </p>
+          <div style="display:flex; gap:5px; margin-top:14px; flex-wrap:wrap;">
+            {% for i in range(10) %}
+              <div class="fam-dot {{ 'fam-dot-filled' if i < filled_count else 'fam-dot-empty' }}"></div>
             {% endfor %}
-          </ul>
+          </div>
+          <p style="font-size:13px; color:#94a3b8; margin:6px 0 0;">Similarity to known profiles</p>
         </div>
-      </details>
+
+      </div>
+
     </div>
     {% endif %}
 
     {% if group == "G2" %}
     <div class="card full-span chart-card" style="margin:0; height:100%;">
-      <h4>Key Drivers</h4>
-      <p class="text-muted" style="margin-top:-6px;">
-        Bars show each factor’s share of influence among the top drivers (not a percent change in your risk).
-        Red pushes stress risk higher; green pushes it lower. It’s normal to see drivers in opposite directions, your overall score
-        is the net effect of all factors combined.
+      <div class="drivers-header">
+        <h4 style="margin:0;">What’s Influencing Your Score</h4>
+        <div class="drivers-legend">
+          <span class="drv-legend-item"><span class="drv-legend-dot drv-legend-up"></span>Raises risk</span>
+          <span class="drv-legend-item"><span class="drv-legend-dot drv-legend-down"></span>Lowers risk</span>
+        </div>
+      </div>
+      <p class="text-muted" style="margin:6px 0 14px;">
+        Each bar shows how much a factor is contributing to your stress risk score relative to the other factors shown.
+        Factors can work in opposite directions, your final score is the combined result of all of them together.
       </p>
-      <div id="drivers_bar" style="height:420px; margin-bottom:12px;"></div>
-      <ul style="margin-top:8px;">
-        {% for desc in driver_descriptions %}
-          <li>{{ desc }}</li>
+      <div id="drivers_bar" style="height:320px; margin-bottom:18px;"></div>
+      <div class="drv-cards">
+        {% for i in range(drivers|length) %}
+          {% set drv = drivers[i] %}
+          {% set desc = driver_descriptions[i] if i < driver_descriptions|length else "" %}
+          <div class="drv-card {{ 'drv-card-up' if drv[1] > 0 else 'drv-card-down' }}">
+            <div class="drv-card-title">
+              <span class="drv-arrow">{{ "▲" if drv[1] > 0 else "▼" }}</span>
+              <strong>{{ drv[0] }}</strong>
+            </div>
+            <div class="drv-card-desc">{{ desc }}</div>
+          </div>
         {% endfor %}
-      </ul>
+      </div>
     </div>
     {% endif %}
   </div>
@@ -330,18 +365,24 @@
       x: signedPct,
       y: drvNames,
       orientation: 'h',
-      marker: {color: drvVals.map(v => v > 0 ? '#fca5a5' : '#a7f3d0')},
-      text: drvPct.map(v => `${v.toFixed(1)}%`),
+      marker: {
+        color: drvVals.map(v => v > 0 ? '#ef4444' : '#22c55e'),
+        opacity: 0.88
+      },
+      text: drvPct.map(v => `${v.toFixed(0)}%`),
       textposition: 'auto',
-      textfont: {size: 13},
-      hovertext: drvVals.map(v => `${v > 0 ? "Increases" : "Decreases"} risk • impact ${v.toFixed(3)}`),
+      textfont: {size: 13, color: '#fff'},
+      hovertext: drvVals.map((v, i) => `<b>${drvNames[i]}</b><br>${v > 0 ? "▲ Raises" : "▼ Lowers"} your stress risk<br>Share of influence: ${drvPct[i].toFixed(1)}%`),
       hoverinfo: 'text'
     }], {
-      height: 420,
-      margin: {l: 175, r: 6, t: 8, b: 8},
+      height: 320,
+      margin: {l: 175, r: 10, t: 10, b: 10},
+      plot_bgcolor: 'rgba(0,0,0,0)',
+      paper_bgcolor: 'rgba(0,0,0,0)',
       yaxis: {
         autorange: 'reversed',
         automargin: true,
+        tickfont: {size: 14},
         ticklabelposition: "outside",
         ticklabelstandoff: 24
       },
@@ -353,8 +394,8 @@
         showticklabels: false,
         ticks: ""
       },
-      font:{family:"Source Sans Pro", size: 14},
-      bargap: 0.2
+      font: {family: "Source Sans Pro", size: 14},
+      bargap: 0.35
     });
   }
 </script>
