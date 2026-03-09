@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="card">
-  <h2 style="margin-top:0;">Stress Assessment</h2>
+  <h2 style="margin-top:0;">Burnout Assessment</h2>
   <p class="text-text">This short assessment helps you understand your current stress load and how it may be affecting your energy, focus, sleep, and overall wellbeing.</p>
-  <p class="text-text">Answer the questions below based on a typical week. Your responses are used to calculate a personalized stress risk score and generate practical recommendations to help you reduce stress. The more accurately you answer, the more useful your results will be.</p>
+  <p class="text-text">Answer the questions below based on a typical week. Your responses are used to calculate a personalized burnout score and generate practical recommendations to help you reduce stress. The more accurately you answer, the more useful your results will be.</p>
   <p class="text-text">Takes about 2-3 minutes to complete.</p>
   <form method="post">
     <div class="section-title">Work & Stress Factors</div>
@@ -94,7 +94,7 @@
     </div>
 
     <div style="margin-top: 28px; display:flex; gap:12px; flex-wrap:wrap;">
-      <button type="submit">🔍 Assess Stress Risk</button>
+      <button type="submit">🔍 Assess Burnout</button>
       {% if pred %}
         <a href="#results" style="text-decoration:none;"><button type="button" class="secondary">Jump to Results</button></a>
       {% endif %}
@@ -105,15 +105,15 @@
 {% if pred %}
 <div class="card" id="results">
   <h3>Results</h3>
-  <p class="text-muted">These results summarize your estimated stress risk and how confident the system is based on similar profiles. Use this as guidance, not a diagnosis.</p>
+  <p class="text-muted">These results summarize your estimated burnout and how confident the system is based on similar profiles. Use this as guidance, not a diagnosis.</p>
   <div class="grid results-grid">
     <div class="card full-span chart-card" style="margin:0; height:100%;">
-      <h4>Stress Risk</h4>
+      <h4>Burnout</h4>
       <div id="gauge" style="height:400px; max-width:520px; width:100%; margin:0 auto;"></div>
-      <p class="text-muted">How this score is calculated: an AI model analyzes your responses (workload, sleep, health, and lifestyle factors) and compares them with patterns learned from prior assessment data to estimate your stress risk level. This is a statistical estimate for guidance, not a medical diagnosis.</p>
+      <p class="text-muted">How this score is calculated: an AI model analyzes your responses (workload, sleep, health, and lifestyle factors) and compares them with patterns learned from prior assessment data to estimate your burnout level. This is a statistical estimate for guidance, not a medical diagnosis.</p>
       {% if group == "G1" %}
         <p class="text-muted">Basic view. Lower is better.</p>
-        {% if risk < 0.33 %}<div class="flash success">✅ Low Stress Risk</div>{% elif risk < 0.66 %}<div class="flash info">ℹ️ Moderate Stress Risk</div>{% else %}<div class="flash error">⚠️ High Stress Risk</div>{% endif %}
+        {% if risk < 0.33 %}<div class="flash success">✅ Low Burnout</div>{% elif risk < 0.66 %}<div class="flash info">ℹ️ Moderate Burnout</div>{% else %}<div class="flash error">⚠️ High Burnout</div>{% endif %}
       {% endif %}
     </div>
 
@@ -221,12 +221,12 @@
       <div class="drivers-header">
         <h4 style="margin:0;">What’s Influencing Your Score</h4>
         <div class="drivers-legend">
-          <span class="drv-legend-item"><span class="drv-legend-dot drv-legend-up"></span>Raises risk</span>
-          <span class="drv-legend-item"><span class="drv-legend-dot drv-legend-down"></span>Lowers risk</span>
+          <span class="drv-legend-item"><span class="drv-legend-dot drv-legend-up"></span>Raises burnout</span>
+          <span class="drv-legend-item"><span class="drv-legend-dot drv-legend-down"></span>Lowers burnout</span>
         </div>
       </div>
       <p class="text-muted" style="margin:6px 0 14px;">
-        Each bar shows how much a factor is contributing to your stress risk score relative to the other factors shown.
+        Each bar shows how much a factor is contributing to your burnout score relative to the other factors shown.
         Factors can work in opposite directions, your final score is the combined result of all of them together.
       </p>
       <div id="drivers_bar" style="height:320px; margin-bottom:18px;"></div>
@@ -338,7 +338,7 @@
     type: "indicator",
     mode: "gauge+number",
     value: data.risk_pct,
-    title: { text: "Stress Risk Level (%)" },
+    title: { text: "Burnout Level (%)" },
     gauge: {
       axis: { range: [0, 100] },
       bar: { color: "#4f46e5" },
@@ -372,7 +372,7 @@
       text: drvPct.map(v => `${v.toFixed(0)}%`),
       textposition: 'auto',
       textfont: {size: 13, color: '#fff'},
-      hovertext: drvVals.map((v, i) => `<b>${drvNames[i]}</b><br>${v > 0 ? "▲ Raises" : "▼ Lowers"} your stress risk<br>Share of influence: ${drvPct[i].toFixed(1)}%`),
+      hovertext: drvVals.map((v, i) => `<b>${drvNames[i]}</b><br>${v > 0 ? "▲ Raises" : "▼ Lowers"} your burnout<br>Share of influence: ${drvPct[i].toFixed(1)}%`),
       hoverinfo: 'text'
     }], {
       height: 320,
