@@ -1038,7 +1038,7 @@ def assessment():
             "sleep_duration_hr": "Sleep Duration",
             "physical_activity_frequency": "Physical Activity",
             "coffee_intake_cups": "Coffee",
-            "alcohol_intake_per_month": "Alcohol",
+            "alcohol_intake_per_week": "Alcohol",
             "screen_time_hr": "Screen Time",
             "social_interactions_count": "Social Interactions",
             "screen_unlocks_per_day": "Screen Unlocks / Day",
@@ -1055,7 +1055,7 @@ def assessment():
             "sleep_duration_hr": (float, 0, 16),
             "physical_activity_frequency": (int, 0, 21),
             "coffee_intake_cups": (float, 0, 15),
-            "alcohol_intake_per_month": (float, 0, 200),
+            "alcohol_intake_per_week": (float, 0, 20),
             "screen_time_hr": (float, 0, 24),
             "social_interactions_count": (int, 0, 50),
             "screen_unlocks_per_day": (int, 0, 500),
@@ -1134,8 +1134,7 @@ def assessment():
         sleep_duration = parsed_values["sleep_duration_hr"]
         exercise = parsed_values["physical_activity_frequency"]
         coffee = parsed_values["coffee_intake_cups"]
-        alcohol_month = parsed_values["alcohol_intake_per_month"]
-        alcohol = alcohol_month / WEEKS_PER_MONTH
+        alcohol = parsed_values["alcohol_intake_per_week"]
         screen_time = parsed_values["screen_time_hr"]
         social = parsed_values["social_interactions_count"]
         screen_unlocks = parsed_values["screen_unlocks_per_day"]
@@ -1165,7 +1164,6 @@ def assessment():
         session["current_user"] = user_data
         session["form_defaults"] = {
             **user_data,
-            "alcohol_intake_per_month": alcohol_month,
         }
 
         get_log().append({
