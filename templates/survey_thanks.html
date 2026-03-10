@@ -9,4 +9,14 @@
     </a>
   </div>
 </div>
+{% set journey_step = total_steps + 4 %}
+{% set journey_total = total_steps + 4 %}
+<div class="journey-bottle" aria-label="Study progress">
+  <div class="journey-bottle-label">Study</div>
+  <div class="journey-bottle-body">
+    <div class="journey-bottle-neck"></div>
+    <div class="journey-bottle-fill" style="height: {{ (journey_step / journey_total * 100) | round(0) }}%;"></div>
+  </div>
+  <div class="journey-bottle-text">Step {{ journey_step }} of {{ journey_total }}</div>
+</div>
 {% endblock %}

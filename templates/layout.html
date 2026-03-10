@@ -305,6 +305,75 @@
       min-width: 90px;
       text-align: right;
     }
+
+    .journey-bottle {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 86px;
+      padding: 10px 10px 12px;
+      background: #ffffff;
+      border: 1px solid #e5e9f2;
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+      text-align: center;
+      z-index: 50;
+    }
+
+    .journey-bottle.left {
+      right: auto;
+      left: 24px;
+    }
+
+    .journey-bottle-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .journey-bottle-body {
+      height: 150px;
+      width: 46px;
+      margin: 0 auto;
+      border: 2px solid #cbd5f5;
+      border-radius: 24px 24px 14px 14px;
+      position: relative;
+      background: linear-gradient(180deg, #f8fbff, #eef4ff);
+      overflow: hidden;
+    }
+
+    .journey-bottle-neck {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 16px;
+      border: 2px solid #cbd5f5;
+      border-bottom: none;
+      border-radius: 12px 12px 0 0;
+      background: #f8fbff;
+    }
+
+    .journey-bottle-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: linear-gradient(180deg, #6bb1ff, #2d7ff9);
+      border-radius: 12px 12px 12px 12px;
+      transition: height 300ms ease;
+    }
+
+    .journey-bottle-text {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 600;
+    }
     
     /* Better select styling */
     select {
@@ -662,6 +731,7 @@
         grid-template-columns: 1fr;
       }
       .card { padding: 20px; }
+      .journey-bottle { display: none; }
     }
   </style>
 </head>

@@ -1588,7 +1588,8 @@ def plan_pdf():
 
 @app.route("/survey/thanks", methods=["GET"])
 def survey_thanks():
-    return render_template("survey_thanks.html")
+    total_steps = 3
+    return render_template("survey_thanks.html", total_steps=total_steps)
 
 # ----------------------------
 # Run
