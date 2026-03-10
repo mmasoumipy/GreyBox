@@ -139,6 +139,7 @@
           <span class="ci-metric-title">AI Confidence</span>
           <span class="ci-badge ci-badge-{{ conf_tier }}">{{ confidence.level }}</span>
         </div>
+        <p class="ci-desc" style="margin-top:10px;">This tells you how much you can trust the prediction if your input data changes slightly.</p>
         <div class="ci-slider-wrap" aria-label="Confidence scale from low to high">
           <div class="confidence-bar" style="margin:10px 0 4px;">
             <div class="confidence-knob" style="left: {{ conf_percent }}%;"></div>
@@ -150,7 +151,6 @@
           </div>
         </div>
         <p class="ci-desc">Your score could shift by up to &#177;{{ half_span }}%. The AI found {{ "strong" if conf_tier == "high" else ("moderate" if conf_tier == "moderate" else "limited") }} pattern matches for your profile.</p>
-        <p class="ci-desc" style="margin-top:6px; border-top:1px solid #e8ecf4; padding-top:8px;">This tells you how much you can trust the prediction if your input data changes slightly.</p>
       </div>
 
       <div class="ci-grid" style="grid-template-columns: repeat(2, 1fr);">
