@@ -2051,22 +2051,10 @@ if st.session_state.get("current_page") == "Survey":
                 key="q_health_app_frequency"
             )
 
-            st.subheader("Core Survey Items (TAM)")
-            st.markdown("**Perceived Usefulness**")
-            responses["q_tam_pu_useful"] = likert("Using this system would be useful for managing my stress/mental health.", "q_tam_pu_useful", likert_scale_7, 4)
-            responses["q_tam_pu_effective"] = likert("Using this system would improve how effectively I manage my stress/mental health.", "q_tam_pu_effective", likert_scale_7, 4)
-            responses["q_tam_pu_productive"] = likert("Using this system would make me more productive in taking care of my mental health.", "q_tam_pu_productive", likert_scale_7, 4)
-            responses["q_tam_pu_easier"] = likert("Using this system would make it easier to manage my stress/mental health.", "q_tam_pu_easier", likert_scale_7, 4)
-            responses["q_tam_pu_understand"] = likert("Using this system would enhance my ability to understand my stress level.", "q_tam_pu_understand", likert_scale_7, 4)
-            responses["q_tam_pu_value"] = likert("Overall, I find this system valuable for my mental health decisions.", "q_tam_pu_value", likert_scale_7, 4)
-
-            st.markdown("**Perceived Ease of Use**")
-            responses["q_tam_peou_learn"] = likert("Learning to use this system would be easy for me.", "q_tam_peou_learn", likert_scale_7, 4)
-            responses["q_tam_peou_clear"] = likert("My interaction with the system would be clear and understandable.", "q_tam_peou_clear", likert_scale_7, 4)
-            responses["q_tam_peou_skillful"] = likert("I would find it easy to become skillful at using the system.", "q_tam_peou_skillful", likert_scale_7, 4)
-            responses["q_tam_peou_flexible"] = likert("I would find the system flexible to interact with.", "q_tam_peou_flexible", likert_scale_7, 4)
-            responses["q_tam_peou_do_what"] = likert("I would find it easy to get the system to do what I want it to do.", "q_tam_peou_do_what", likert_scale_7, 4)
-            responses["q_tam_peou_easy"] = likert("Overall, I would find the system easy to use.", "q_tam_peou_easy", likert_scale_7, 4)
+            st.subheader("Core Survey Items (S-TIAS)")
+            responses["q_stias_reliable"] = likert("The system is reliable.", "q_stias_reliable", likert_scale_7, 4)
+            responses["q_stias_trust"] = likert("I trust the system.", "q_stias_trust", likert_scale_7, 4)
+            responses["q_stias_understandable"] = likert("The system behaves in an understandable way.", "q_stias_understandable", likert_scale_7, 4)
             responses["q_attention_check_feature"] = st.selectbox(
                 "Attention Check: Which factor increased your stress risk the most?",
                 driver_options,

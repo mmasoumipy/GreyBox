@@ -13,28 +13,14 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (12, 8)
 
-# Aggregated metric definitions for the TAM questionnaire
+# Aggregated metric definitions for the S-TIAS questionnaire
 AGG_METRICS = {
-    "tam_usefulness": {
-        "label": "TAM - Perceived Usefulness",
+    "stias_trust": {
+        "label": "S-TIAS - Trust & Reliability",
         "questions": [
-            "q_tam_pu_useful",
-            "q_tam_pu_effective",
-            "q_tam_pu_productive",
-            "q_tam_pu_easier",
-            "q_tam_pu_understand",
-            "q_tam_pu_value",
-        ],
-    },
-    "tam_ease_of_use": {
-        "label": "TAM - Perceived Ease of Use",
-        "questions": [
-            "q_tam_peou_learn",
-            "q_tam_peou_clear",
-            "q_tam_peou_skillful",
-            "q_tam_peou_flexible",
-            "q_tam_peou_do_what",
-            "q_tam_peou_easy",
+            "q_stias_reliable",
+            "q_stias_trust",
+            "q_stias_understandable",
         ],
     },
     "gaais_attitudes": {

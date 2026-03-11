@@ -1226,18 +1226,9 @@ def results():
     return redirect(url_for("assessment"))
 
 LIKERT_CORE: List[Tuple[str, str]] = [
-    ("q_tam_pu_useful", "Using this stress assessment system would help me manage my stress more quickly."),
-    ("q_tam_pu_effective", "Using this stress assessment system would improve how effectively I manage my stress."),
-    ("q_tam_pu_productive", "Using this stress assessment system would increase my productivity in taking care of my wellbeing."),
-    ("q_tam_pu_easier", "Using this stress assessment system would make it easier to manage my stress."),
-    ("q_tam_pu_understand", "Using this stress assessment system would enhance my effectiveness in monitoring my stress levels."),
-    ("q_tam_pu_value", "I would find this stress assessment system useful for my stress-related decisions."),
-    ("q_tam_peou_learn", "Learning to use this stress assessment system would be easy for me."),
-    ("q_tam_peou_clear", "My interaction with this stress assessment system would be clear and understandable."),
-    ("q_tam_peou_skillful", "It would be easy for me to become skillful at using this stress assessment system."),
-    ("q_tam_peou_flexible", "I would find this stress assessment system flexible to interact with."),
-    ("q_tam_peou_do_what", "I would find it easy to get this stress assessment system to do what I want it to do."),
-    ("q_tam_peou_easy", "Overall, I would find this stress assessment system easy to use."),
+    ("q_stias_reliable", "The system is reliable."),
+    ("q_stias_trust", "I trust the system."),
+    ("q_stias_understandable", "The system behaves in an understandable way."),
 ]
 
 LIKERT_GAAIS: List[Tuple[str, str]] = [

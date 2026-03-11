@@ -84,16 +84,15 @@
       </div>
     {% elif step == 2 %}
       <div class="section-block">
-        <div class="section-title">Core Survey Items</div>
+        <div class="section-title">Core Survey Items (S-TIAS)</div>
         <p class="text-text" style="margin: 0 0 12px 0;">Answer using the Likely/Unlikely scale shown below.</p>
         {% set scale_labels = ["Extremely", "Quite", "Slightly", "Neither", "Slightly", "Quite", "Extremely"] %}
 
         <div class="tam-table-wrap">
-          <table class="tam-table" aria-label="Technology Acceptance Model — Perceived Usefulness">
+          <table class="tam-table" aria-label="S-TIAS">
             <thead>
               <tr>
                 <th class="tam-statement" rowspan="2"></th>
-                <!-- Technology Acceptance Model - Perceived Usefulness (PU) -->
                 <th colspan="3">Likely</th>
                 <th rowspan="2">Neither</th>
                 <th colspan="3">Unlikely</th>
@@ -107,49 +106,9 @@
               </tr>
             </thead>
             <tbody>
-              {% for key, label in likert_core[:6] %}
+              {% for key, label in likert_core %}
                 <tr>
                   <td class="tam-statement">{{ loop.index }}. {{ label }}</td>
-                  {% for score in range(1, 8) %}
-                    <td>
-                      <input
-                        type="radio"
-                        name="{{ key }}"
-                        value="{{ score }}"
-                        {% if defaults.get(key, 4)|int == score %}checked{% endif %}
-                        {% if score == 1 %}required{% endif %}
-                        aria-label="{{ label }} - {{ scale_labels[score - 1] }}"
-                      >
-                    </td>
-                  {% endfor %}
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="tam-table-wrap" style="margin-top: 18px;">
-          <table class="tam-table" aria-label="Technology Acceptance Model — Perceived Ease of Use">
-            <thead>
-              <tr>
-                <th class="tam-statement" rowspan="2"></th>
-                <!-- Technology Acceptance Model - Perceived Ease of Use (PEU) -->
-                <th colspan="3">Likely</th>
-                <th rowspan="2">Neither</th>
-                <th colspan="3">Unlikely</th>
-              </tr>
-              <tr>
-                {% for label in scale_labels %}
-                  {% if loop.index0 != 3 %}
-                    <th class="tam-subhead">{{ label }}</th>
-                  {% endif %}
-                {% endfor %}
-              </tr>
-            </thead>
-            <tbody>
-              {% for key, label in likert_core[6:] %}
-                <tr>
-                  <td class="tam-statement">{{ loop.index + 6 }}. {{ label }}</td>
                   {% for score in range(1, 8) %}
                     <td>
                       <input
