@@ -1292,8 +1292,15 @@ def survey_step(step: int):
         flash("Generate and review your personalized plan before taking the survey.")
         return redirect(url_for("assessment") + "#plan")
 
-    driver_options = [friendly_feature_name(f) for f, _ in pred.get("drivers", [])] or ["Workload rating", "Sleep quality", "Stress events last week"]
-    driver_options.append("Not sure / prefer not to answer")
+    driver_options = [
+        "Weekly work hours",
+        "Workload rating",
+        "Stress events last week",
+        "Sleep duration",
+        "Phone unlocks per day",
+        "Screen time",
+        "I'm not sure",
+    ]
 
     total_steps = 3
     if step < 1 or step > total_steps:

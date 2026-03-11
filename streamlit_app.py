@@ -1958,10 +1958,15 @@ if st.session_state.get("current_page") == "Survey":
     if "current_prediction" not in st.session_state:
         st.info("Complete the assessment and view your results before filling out the survey.")
     else:
-        driver_options = [friendly_feature_name(f) for f, _ in st.session_state["current_prediction"].get("drivers", [])]
-        if not driver_options:
-            driver_options = ["Workload rating", "Sleep quality", "Stress events last week"]
-        driver_options.append("Not sure / prefer not to answer")
+        driver_options = [
+            "Weekly work hours",
+            "Workload rating",
+            "Stress events last week",
+            "Sleep duration",
+            "Phone unlocks per day",
+            "Screen time",
+            "I'm not sure",
+        ]
 
         demo_defaults = st.session_state.get("current_demographics") or {}
 
@@ -2063,7 +2068,7 @@ if st.session_state.get("current_page") == "Survey":
             responses["q_tam_peou_do_what"] = likert("I would find it easy to get the system to do what I want it to do.", "q_tam_peou_do_what", likert_scale_7, 4)
             responses["q_tam_peou_easy"] = likert("Overall, I would find the system easy to use.", "q_tam_peou_easy", likert_scale_7, 4)
             responses["q_attention_check_feature"] = st.selectbox(
-                "Attention Check: Which feature increased your risk the most?",
+                "Attention Check: Which factor increased your stress risk the most?",
                 driver_options,
                 key="q_attention_check_feature"
             )
