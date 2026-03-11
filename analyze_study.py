@@ -23,6 +23,15 @@ AGG_METRICS = {
             "q_stias_understandable",
         ],
     },
+    "ai_impact": {
+        "label": "AI Impact",
+        "questions": [
+            "q_ai_reasonable",
+            "q_ai_trust_recs",
+            "q_ai_understand_factors",
+            "q_ai_recs_useful",
+        ],
+    },
     "gaais_attitudes": {
         "label": "GAAIS Attitudes",
         "questions": [

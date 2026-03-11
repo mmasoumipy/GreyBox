@@ -1231,6 +1231,13 @@ LIKERT_CORE: List[Tuple[str, str]] = [
     ("q_stias_understandable", "The system behaves in an understandable way."),
 ]
 
+LIKERT_AI_IMPACT: List[Tuple[str, str]] = [
+    ("q_ai_reasonable", "The AI stress estimate seems reasonable given my responses."),
+    ("q_ai_trust_recs", "I trust the AI recommendations as a good next step to reduce stress."),
+    ("q_ai_understand_factors", "The results helped me understand what factors are affecting my stress level."),
+    ("q_ai_recs_useful", "The AI recommendations would be useful for helping me manage my stress."),
+]
+
 LIKERT_GAAIS: List[Tuple[str, str]] = [
     ("q_gaais_interest", "I am interested in using artificial intelligence systems in my daily life."),
     ("q_gaais_impact", "Artificial Intelligence can have positive impacts on people's wellbeing."),
@@ -1304,6 +1311,13 @@ def survey_step(step: int):
         "q_ai_knowledge": "AI knowledge",
         "q_ai_tool_frequency": "AI tool use frequency",
         "q_health_app_frequency": "Health app/wearable frequency",
+        "q_stias_reliable": "S-TIAS: The system is reliable",
+        "q_stias_trust": "S-TIAS: I trust the system",
+        "q_stias_understandable": "S-TIAS: The system behaves in an understandable way",
+        "q_ai_reasonable": "AI Impact: The AI stress estimate seems reasonable",
+        "q_ai_trust_recs": "AI Impact: I trust the AI recommendations",
+        "q_ai_understand_factors": "AI Impact: The results helped me understand factors affecting stress",
+        "q_ai_recs_useful": "AI Impact: The AI recommendations would be useful",
         "q_attention_check_feature": "Attention check",
         "q_open_most_useful": "Most useful part",
         "q_open_unclear": "Unclear part",
@@ -1349,6 +1363,8 @@ def survey_step(step: int):
             if step == 2:
                 for key, _ in LIKERT_CORE:
                     survey_form[key] = request.form.get(key, "")
+                for key, _ in LIKERT_AI_IMPACT:
+                    survey_form[key] = request.form.get(key, "")
             if step == 3 and group == "G2":
                 for key, _ in LIKERT_G2_UNCERTAINTY:
                     survey_form[key] = request.form.get(key, "")
@@ -1358,6 +1374,7 @@ def survey_step(step: int):
         required_fields = list(step_fields.get(step, []))
         if step == 2:
             required_fields.extend([key for key, _ in LIKERT_CORE])
+            required_fields.extend([key for key, _ in LIKERT_AI_IMPACT])
         if step == 3 and group == "G2":
             required_fields.extend([key for key, _ in LIKERT_G2_UNCERTAINTY])
 
@@ -1371,6 +1388,7 @@ def survey_step(step: int):
                 group=group,
                 driver_options=driver_options,
                 likert_core=LIKERT_CORE,
+                likert_ai_impact=LIKERT_AI_IMPACT,
                 likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
                 likert_g2_min=1,
                 likert_g2_max=5,
@@ -1400,6 +1418,8 @@ def survey_step(step: int):
         if step == 2:
             for key, _ in LIKERT_CORE:
                 survey_form[key] = request.form.get(key, "")
+            for key, _ in LIKERT_AI_IMPACT:
+                survey_form[key] = request.form.get(key, "")
         if step == 3 and group == "G2":
             for key, _ in LIKERT_G2_UNCERTAINTY:
                 survey_form[key] = request.form.get(key, "")
@@ -1424,6 +1444,8 @@ def survey_step(step: int):
             responses["q_health_app_frequency"] = survey_form.get("q_health_app_frequency", "Never")
 
             for key, _ in LIKERT_CORE:
+                responses[key] = to_int(key, 3)
+            for key, _ in LIKERT_AI_IMPACT:
                 responses[key] = to_int(key, 3)
 
             responses["q_attention_check_feature"] = survey_form.get("q_attention_check_feature", driver_options[0])
@@ -1464,6 +1486,7 @@ def survey_step(step: int):
         group=group,
         driver_options=driver_options,
         likert_core=LIKERT_CORE,
+        likert_ai_impact=LIKERT_AI_IMPACT,
         likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
         likert_g2_min=1,
         likert_g2_max=5,

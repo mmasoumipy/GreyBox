@@ -2055,6 +2055,11 @@ if st.session_state.get("current_page") == "Survey":
             responses["q_stias_reliable"] = likert("The system is reliable.", "q_stias_reliable", likert_scale_7, 4)
             responses["q_stias_trust"] = likert("I trust the system.", "q_stias_trust", likert_scale_7, 4)
             responses["q_stias_understandable"] = likert("The system behaves in an understandable way.", "q_stias_understandable", likert_scale_7, 4)
+            st.markdown("**AI Impact**")
+            responses["q_ai_reasonable"] = likert("The AI stress estimate seems reasonable given my responses.", "q_ai_reasonable", likert_scale_7, 4)
+            responses["q_ai_trust_recs"] = likert("I trust the AI recommendations as a good next step to reduce stress.", "q_ai_trust_recs", likert_scale_7, 4)
+            responses["q_ai_understand_factors"] = likert("The results helped me understand what factors are affecting my stress level.", "q_ai_understand_factors", likert_scale_7, 4)
+            responses["q_ai_recs_useful"] = likert("The AI recommendations would be useful for helping me manage my stress.", "q_ai_recs_useful", likert_scale_7, 4)
             responses["q_attention_check_feature"] = st.selectbox(
                 "Attention Check: Which factor increased your stress risk the most?",
                 driver_options,

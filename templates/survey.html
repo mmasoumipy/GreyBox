@@ -126,6 +126,45 @@
             </tbody>
           </table>
         </div>
+
+        <div class="tam-table-wrap" style="margin-top: 18px;">
+          <table class="tam-table" aria-label="AI Impact">
+            <thead>
+              <tr>
+                <th class="tam-statement" rowspan="2"></th>
+                <th colspan="3">Likely</th>
+                <th rowspan="2">Neither</th>
+                <th colspan="3">Unlikely</th>
+              </tr>
+              <tr>
+                {% for label in scale_labels %}
+                  {% if loop.index0 != 3 %}
+                    <th class="tam-subhead">{{ label }}</th>
+                  {% endif %}
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for key, label in likert_ai_impact %}
+                <tr>
+                  <td class="tam-statement">{{ loop.index + likert_core|length }}. {{ label }}</td>
+                  {% for score in range(1, 8) %}
+                    <td>
+                      <input
+                        type="radio"
+                        name="{{ key }}"
+                        value="{{ score }}"
+                        {% if defaults.get(key, 4)|int == score %}checked{% endif %}
+                        {% if score == 1 %}required{% endif %}
+                        aria-label="{{ label }} - {{ scale_labels[score - 1] }}"
+                      >
+                    </td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     {% elif step == 3 %}
       <div class="section-block">
