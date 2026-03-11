@@ -1238,6 +1238,12 @@ LIKERT_AI_IMPACT: List[Tuple[str, str]] = [
     ("q_ai_recs_useful", "The AI recommendations would be useful for helping me manage my stress."),
 ]
 
+LIKERT_INTENTIONS: List[Tuple[str, str]] = [
+    ("q_intent_follow_ai_action", "I intend to follow at least one of the AI-recommended actions in the next 7 days."),
+    ("q_intent_increase_activity", "I intend to increase my physical activity in the next 7 days."),
+    ("q_intent_stress_technique", "I intend to practice at least one stress-management technique (e.g., breathing, journaling, meditation) in the next 7 days."),
+]
+
 LIKERT_GAAIS: List[Tuple[str, str]] = [
     ("q_gaais_interest", "I am interested in using artificial intelligence systems in my daily life."),
     ("q_gaais_impact", "Artificial Intelligence can have positive impacts on people's wellbeing."),
@@ -1318,6 +1324,9 @@ def survey_step(step: int):
         "q_ai_trust_recs": "AI Impact: I trust the AI recommendations",
         "q_ai_understand_factors": "AI Impact: The results helped me understand factors affecting stress",
         "q_ai_recs_useful": "AI Impact: The AI recommendations would be useful",
+        "q_intent_follow_ai_action": "Intentions: Follow at least one AI-recommended action in the next 7 days",
+        "q_intent_increase_activity": "Intentions: Increase physical activity in the next 7 days",
+        "q_intent_stress_technique": "Intentions: Practice a stress-management technique in the next 7 days",
         "q_attention_check_feature": "Attention check",
         "q_open_most_useful": "Most useful part",
         "q_open_unclear": "Unclear part",
@@ -1365,6 +1374,8 @@ def survey_step(step: int):
                     survey_form[key] = request.form.get(key, "")
                 for key, _ in LIKERT_AI_IMPACT:
                     survey_form[key] = request.form.get(key, "")
+                for key, _ in LIKERT_INTENTIONS:
+                    survey_form[key] = request.form.get(key, "")
             if step == 3 and group == "G2":
                 for key, _ in LIKERT_G2_UNCERTAINTY:
                     survey_form[key] = request.form.get(key, "")
@@ -1375,6 +1386,7 @@ def survey_step(step: int):
         if step == 2:
             required_fields.extend([key for key, _ in LIKERT_CORE])
             required_fields.extend([key for key, _ in LIKERT_AI_IMPACT])
+            required_fields.extend([key for key, _ in LIKERT_INTENTIONS])
         if step == 3 and group == "G2":
             required_fields.extend([key for key, _ in LIKERT_G2_UNCERTAINTY])
 
@@ -1389,6 +1401,7 @@ def survey_step(step: int):
                 driver_options=driver_options,
                 likert_core=LIKERT_CORE,
                 likert_ai_impact=LIKERT_AI_IMPACT,
+                likert_intentions=LIKERT_INTENTIONS,
                 likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
                 likert_g2_min=1,
                 likert_g2_max=5,
@@ -1420,6 +1433,8 @@ def survey_step(step: int):
                 survey_form[key] = request.form.get(key, "")
             for key, _ in LIKERT_AI_IMPACT:
                 survey_form[key] = request.form.get(key, "")
+            for key, _ in LIKERT_INTENTIONS:
+                survey_form[key] = request.form.get(key, "")
         if step == 3 and group == "G2":
             for key, _ in LIKERT_G2_UNCERTAINTY:
                 survey_form[key] = request.form.get(key, "")
@@ -1446,6 +1461,8 @@ def survey_step(step: int):
             for key, _ in LIKERT_CORE:
                 responses[key] = to_int(key, 3)
             for key, _ in LIKERT_AI_IMPACT:
+                responses[key] = to_int(key, 3)
+            for key, _ in LIKERT_INTENTIONS:
                 responses[key] = to_int(key, 3)
 
             responses["q_attention_check_feature"] = survey_form.get("q_attention_check_feature", driver_options[0])
@@ -1481,15 +1498,16 @@ def survey_step(step: int):
             session.clear()
             return redirect(url_for("survey_thanks"))
 
-    return render_template(
-        "survey.html",
-        group=group,
-        driver_options=driver_options,
-        likert_core=LIKERT_CORE,
-        likert_ai_impact=LIKERT_AI_IMPACT,
-        likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
-        likert_g2_min=1,
-        likert_g2_max=5,
+        return render_template(
+            "survey.html",
+            group=group,
+            driver_options=driver_options,
+            likert_core=LIKERT_CORE,
+            likert_ai_impact=LIKERT_AI_IMPACT,
+            likert_intentions=LIKERT_INTENTIONS,
+            likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
+            likert_g2_min=1,
+            likert_g2_max=5,
         likert_g2_default=3,
         user_id=session.get("user_id"),
         step=step,

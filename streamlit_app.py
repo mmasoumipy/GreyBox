@@ -2060,6 +2060,10 @@ if st.session_state.get("current_page") == "Survey":
             responses["q_ai_trust_recs"] = likert("I trust the AI recommendations as a good next step to reduce stress.", "q_ai_trust_recs", likert_scale_7, 4)
             responses["q_ai_understand_factors"] = likert("The results helped me understand what factors are affecting my stress level.", "q_ai_understand_factors", likert_scale_7, 4)
             responses["q_ai_recs_useful"] = likert("The AI recommendations would be useful for helping me manage my stress.", "q_ai_recs_useful", likert_scale_7, 4)
+            st.markdown("**Intentions**")
+            responses["q_intent_follow_ai_action"] = likert("I intend to follow at least one of the AI-recommended actions in the next 7 days.", "q_intent_follow_ai_action", likert_scale_7, 4)
+            responses["q_intent_increase_activity"] = likert("I intend to increase my physical activity in the next 7 days.", "q_intent_increase_activity", likert_scale_7, 4)
+            responses["q_intent_stress_technique"] = likert("I intend to practice at least one stress-management technique (e.g., breathing, journaling, meditation) in the next 7 days.", "q_intent_stress_technique", likert_scale_7, 4)
             responses["q_attention_check_feature"] = st.selectbox(
                 "Attention Check: Which factor increased your stress risk the most?",
                 driver_options,

@@ -32,6 +32,14 @@ AGG_METRICS = {
             "q_ai_recs_useful",
         ],
     },
+    "intentions": {
+        "label": "Intentions (Next 7 Days)",
+        "questions": [
+            "q_intent_follow_ai_action",
+            "q_intent_increase_activity",
+            "q_intent_stress_technique",
+        ],
+    },
     "gaais_attitudes": {
         "label": "GAAIS Attitudes",
         "questions": [
