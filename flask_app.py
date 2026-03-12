@@ -1498,16 +1498,16 @@ def survey_step(step: int):
             session.clear()
             return redirect(url_for("survey_thanks"))
 
-        return render_template(
-            "survey.html",
-            group=group,
-            driver_options=driver_options,
-            likert_core=LIKERT_CORE,
-            likert_ai_impact=LIKERT_AI_IMPACT,
-            likert_intentions=LIKERT_INTENTIONS,
-            likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
-            likert_g2_min=1,
-            likert_g2_max=5,
+    return render_template(
+        "survey.html",
+        group=group,
+        driver_options=driver_options,
+        likert_core=LIKERT_CORE,
+        likert_ai_impact=LIKERT_AI_IMPACT,
+        likert_intentions=LIKERT_INTENTIONS,
+        likert_g2=LIKERT_G2_UNCERTAINTY if group == "G2" else [],
+        likert_g2_min=1,
+        likert_g2_max=5,
         likert_g2_default=3,
         user_id=session.get("user_id"),
         step=step,
