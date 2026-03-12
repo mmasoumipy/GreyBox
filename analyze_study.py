@@ -55,26 +55,14 @@ AGG_METRICS = {
             "q_gaais_suffering",
         ],
     },
-    "ess_explanation_satisfaction": {
-        "label": "ESS - Explanation Satisfaction (G2)",
+    "g2_confidence_info": {
+        "label": "Model Confidence Information (G2)",
         "questions": [
-            "q_ess_understand",
-            "q_ess_satisfying",
-            "q_ess_detail",
-            "q_ess_complete",
-            "q_ess_accurate",
-            "q_ess_reliable",
-            "q_ess_how_to_use",
-            "q_ess_useful_goals",
-            "q_ess_trust_calibration",
-        ],
-        "g2_only": True,
-    },
-    "uncertainty_visualization": {
-        "label": "Uncertainty Visualization (G2)",
-        "questions": [
-            "q_uncertainty_understand_confidence",
-            "q_uncertainty_transparent",
+            "q_g2_confidence_certainty",
+            "q_g2_confidence_trust",
+            "q_g2_transparency",
+            "q_g2_confidence_clear",
+            "q_g2_understand_types",
         ],
         "g2_only": True,
     },
@@ -251,7 +239,6 @@ def analyze_qualitative(surveys):
         "resp.q_open_most_useful": "Most useful",
         "resp.q_open_unclear": "Unclear",
         "resp.q_open_suggestions": "Suggestions",
-        "resp.q_open_uncertainty_impact": "Uncertainty impact (G2)",
     }
 
     for field, label in text_fields.items():

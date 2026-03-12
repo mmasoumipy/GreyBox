@@ -262,23 +262,6 @@
               </div>
             {% endfor %}
           </div>
-          <div style="display: grid; gap: 20px; grid-template-columns: 1fr;">
-            <div class="form-group">
-              <label for="q_open_uncertainty_impact">Did the uncertainty or explanations change how you interpreted the results?</label>
-              <div class="field-hint">Briefly describe any change in interpretation.</div>
-              <textarea name="q_open_uncertainty_impact" id="q_open_uncertainty_impact" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_uncertainty_impact', '') }}</textarea>
-            </div>
-            <div class="form-group">
-              <label for="q_open_uncertainty_transparency">How did the uncertainty information affect your perception of the system’s transparency?</label>
-              <div class="field-hint">Share any changes in how transparent the system felt.</div>
-              <textarea name="q_open_uncertainty_transparency" id="q_open_uncertainty_transparency" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_uncertainty_transparency', '') }}</textarea>
-            </div>
-            <div class="form-group">
-              <label for="q_open_uncertainty_confidence">How did the uncertainty visualization influence your understanding of the system’s confidence?</label>
-              <div class="field-hint">Briefly describe your understanding of confidence.</div>
-              <textarea name="q_open_uncertainty_confidence" id="q_open_uncertainty_confidence" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_uncertainty_confidence', '') }}</textarea>
-            </div>
-          </div>
         </div>
       {% endif %}
     {% endif %}
@@ -301,17 +284,11 @@
 </div>
 <script>
   const flashErrors = Array.from(document.querySelectorAll(".flash.error")).map((el) => el.textContent || "");
-  const matchUncertainty = flashErrors.some((msg) => msg.includes("Uncertainty impact"));
-  if (matchUncertainty) {
-    const uncertaintyFields = [
-      "q_open_uncertainty_impact",
-      "q_open_uncertainty_transparency",
-      "q_open_uncertainty_confidence",
-    ];
-    uncertaintyFields.forEach((id) => {
-      const field = document.getElementById(id);
-      if (field) field.classList.add("input-error");
-    });
+  const matchG2 = flashErrors.some((msg) => msg.includes("G2:"));
+  if (matchG2) {
+    const titles = Array.from(document.querySelectorAll(".section-title"));
+    const g2Section = titles.find((el) => (el.textContent || "").includes("Group 2 Only"));
+    if (g2Section) g2Section.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   const sliders = document.querySelectorAll("[data-slider]");

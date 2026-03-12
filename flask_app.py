@@ -1258,15 +1258,11 @@ LIKERT_GAAIS: List[Tuple[str, str]] = [
 ]
 
 LIKERT_G2_UNCERTAINTY: List[Tuple[str, str]] = [
-    ("q_ess_understand", "From the explanation, I understand how this stress assessment system works."),
-    ("q_ess_satisfying", "This explanation of how this stress assessment system works is satisfying."),
-    ("q_ess_detail", "This explanation of how this stress assessment system works has sufficient detail."),
-    ("q_ess_complete", "This explanation seems complete."),
-    ("q_ess_accurate", "This explanation shows how accurate this stress assessment system is."),
-    ("q_ess_reliable", "This explanation shows me how reliable this stress assessment system is."),
-    ("q_ess_how_to_use", "This explanation tells me how to use this stress assessment system."),
-    ("q_ess_useful_goals", "This explanation is useful to my goals."),
-    ("q_ess_trust_calibration", "This explanation helps me know when I should trust and not trust this stress assessment system."),
+    ("q_g2_confidence_certainty", "The model confidence information helped me understand how certain the AI stress estimate is."),
+    ("q_g2_confidence_trust", "The model confidence information helped me know when I should trust or question the AI result."),
+    ("q_g2_transparency", "The model confidence information made the AI system feel more transparent."),
+    ("q_g2_confidence_clear", "The model confidence information was clear and easy to understand."),
+    ("q_g2_understand_types", "I understood the output on the types of AI confidence and uncertainty that aim to explain the AI stress estimate."),
 ]
 
 EDUCATION_OPTIONS = [
@@ -1331,9 +1327,11 @@ def survey_step(step: int):
         "q_open_most_useful": "Most useful part",
         "q_open_unclear": "Unclear part",
         "q_open_suggestions": "Suggestions",
-        "q_open_uncertainty_impact": "Uncertainty impact: Did the uncertainty or explanations change how you interpreted the results?",
-        "q_open_uncertainty_transparency": "Uncertainty transparency impact: How did the uncertainty information affect your perception of the system’s transparency?",
-        "q_open_uncertainty_confidence": "Uncertainty confidence impact: How did the uncertainty visualization influence your understanding of the system’s confidence?",
+        "q_g2_confidence_certainty": "G2: Confidence helped explain certainty",
+        "q_g2_confidence_trust": "G2: Confidence helped calibrate trust",
+        "q_g2_transparency": "G2: Confidence made the system feel transparent",
+        "q_g2_confidence_clear": "G2: Confidence information was clear",
+        "q_g2_understand_types": "G2: Understood AI confidence/uncertainty types",
     }
 
     def grab_int(name: str, default: int = 3) -> int:
@@ -1358,13 +1356,6 @@ def survey_step(step: int):
             "q_open_suggestions",
         ],
     }
-    if group == "G2":
-        step_fields[3].extend([
-            "q_open_uncertainty_impact",
-            "q_open_uncertainty_transparency",
-            "q_open_uncertainty_confidence",
-        ])
-
     if request.method == "POST":
         if "back" in request.form:
             for field in step_fields.get(step, []):
@@ -1416,17 +1407,7 @@ def survey_step(step: int):
                 health_app_frequency_options=HEALTH_APP_FREQUENCY_OPTIONS,
             )
         for field in step_fields.get(step, []):
-            if field in [
-                "q_open_most_useful",
-                "q_open_unclear",
-                "q_open_suggestions",
-                "q_open_uncertainty_impact",
-                "q_open_uncertainty_transparency",
-                "q_open_uncertainty_confidence",
-            ]:
-                survey_form[field] = request.form.get(field, "")
-            else:
-                survey_form[field] = request.form.get(field, "")
+            survey_form[field] = request.form.get(field, "")
 
         if step == 2:
             for key, _ in LIKERT_CORE:
@@ -1474,9 +1455,6 @@ def survey_step(step: int):
             if group == "G2":
                 for key, _ in LIKERT_G2_UNCERTAINTY:
                     responses[key] = to_int(key, 3)
-                responses["q_open_uncertainty_impact"] = survey_form.get("q_open_uncertainty_impact", "")
-                responses["q_open_uncertainty_transparency"] = survey_form.get("q_open_uncertainty_transparency", "")
-                responses["q_open_uncertainty_confidence"] = survey_form.get("q_open_uncertainty_confidence", "")
 
             gaais_responses = session.get("gaais_responses") or {}
             for key, _ in LIKERT_GAAIS:

@@ -838,7 +838,7 @@ def run_study_analysis_pipeline():
             report_text = report_path.read_text()
     except Exception as exc:
         warnings.append(f"Report generation failed: {exc}")
-    qualitative_cols = [c for c in ["resp.q_open_most_useful", "resp.q_open_unclear", "resp.q_open_suggestions", "resp.q_open_uncertainty_impact"] if c in surveys_with_metrics.columns]
+    qualitative_cols = [c for c in ["resp.q_open_most_useful", "resp.q_open_unclear", "resp.q_open_suggestions"] if c in surveys_with_metrics.columns]
     qualitative = pd.DataFrame()
     if qualitative_cols:
         qualitative = surveys_with_metrics[["group"] + qualitative_cols].dropna(how="all", subset=qualitative_cols)
@@ -2083,33 +2083,35 @@ if st.session_state.get("current_page") == "Survey":
 
             if st.session_state["study_mode"] == "G2":
                 st.subheader("Group 2 Only – Uncertainty & Explanations")
-                st.markdown("**Explanation Satisfaction Scale (ESS)**")
-                responses["q_ess_understand"] = likert("From the explanation, I understand how the system works.", "q_ess_understand", likert_scale_5, 3)
-                responses["q_ess_satisfying"] = likert("This explanation of how the system works is satisfying.", "q_ess_satisfying", likert_scale_5, 3)
-                responses["q_ess_detail"] = likert("This explanation of how the system works has sufficient detail.", "q_ess_detail", likert_scale_5, 3)
-                responses["q_ess_complete"] = likert("This explanation seems complete.", "q_ess_complete", likert_scale_5, 3)
-                responses["q_ess_accurate"] = likert("This explanation shows me how accurate the system is.", "q_ess_accurate", likert_scale_5, 3)
-                responses["q_ess_reliable"] = likert("This explanation shows me how reliable the system is.", "q_ess_reliable", likert_scale_5, 3)
-                responses["q_ess_how_to_use"] = likert("This explanation tells me how to use the system.", "q_ess_how_to_use", likert_scale_5, 3)
-                responses["q_ess_useful_goals"] = likert("This explanation is useful to my goals.", "q_ess_useful_goals", likert_scale_5, 3)
-                responses["q_ess_trust_calibration"] = likert("This explanation helps me know when I should trust and not trust the system.", "q_ess_trust_calibration", likert_scale_5, 3)
-
-                st.markdown("**Uncertainty Visualization**")
-                responses["q_uncertainty_understand_confidence"] = likert(
-                    "The uncertainty visualization helped me understand the system’s confidence.",
-                    "q_uncertainty_understand_confidence",
+                responses["q_g2_confidence_certainty"] = likert(
+                    "The model confidence information helped me understand how certain the AI stress estimate is.",
+                    "q_g2_confidence_certainty",
                     likert_scale_5,
-                    3
+                    3,
                 )
-                responses["q_uncertainty_transparent"] = likert(
-                    "Showing uncertainty made the prediction feel more transparent.",
-                    "q_uncertainty_transparent",
+                responses["q_g2_confidence_trust"] = likert(
+                    "The model confidence information helped me know when I should trust or question the AI result.",
+                    "q_g2_confidence_trust",
                     likert_scale_5,
-                    3
+                    3,
                 )
-                responses["q_open_uncertainty_impact"] = st.text_area(
-                    "Did the uncertainty or explanations change how you interpreted the results?",
-                    key="q_open_uncertainty_impact"
+                responses["q_g2_transparency"] = likert(
+                    "The model confidence information made the AI system feel more transparent.",
+                    "q_g2_transparency",
+                    likert_scale_5,
+                    3,
+                )
+                responses["q_g2_confidence_clear"] = likert(
+                    "The model confidence information was clear and easy to understand.",
+                    "q_g2_confidence_clear",
+                    likert_scale_5,
+                    3,
+                )
+                responses["q_g2_understand_types"] = likert(
+                    "I understood the output on the types of AI confidence and uncertainty that aim to explain the AI stress estimate.",
+                    "q_g2_understand_types",
+                    likert_scale_5,
+                    3,
                 )
 
             survey_submit = st.form_submit_button("Submit Questionnaire", use_container_width=True)
