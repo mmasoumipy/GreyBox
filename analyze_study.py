@@ -236,9 +236,9 @@ def analyze_qualitative(surveys):
     print("=" * 60)
 
     text_fields = {
-        "resp.q_open_most_useful": "Most useful",
-        "resp.q_open_unclear": "Unclear",
-        "resp.q_open_suggestions": "Suggestions",
+        "resp.q_open_most_useful": "Model confidence impact",
+        "resp.q_open_unclear": "Unclear/confusing parts",
+        "resp.q_open_suggestions": "Clarity/usefulness improvements",
     }
 
     for field, label in text_fields.items():

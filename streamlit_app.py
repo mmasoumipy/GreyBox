@@ -2077,9 +2077,18 @@ if st.session_state.get("current_page") == "Survey":
             )
 
             st.subheader("Open-Ended Questions")
-            responses["q_open_most_useful"] = st.text_area("What part of the assessment was most useful?", key="q_open_most_useful")
-            responses["q_open_unclear"] = st.text_area("What part was unclear?", key="q_open_unclear")
-            responses["q_open_suggestions"] = st.text_area("Do you have suggestions for improvement?", key="q_open_suggestions")
+            responses["q_open_most_useful"] = st.text_area(
+                "16. Did the model confidence information change how you interpreted your stress result? (1–2 sentences)",
+                key="q_open_most_useful",
+            )
+            responses["q_open_unclear"] = st.text_area(
+                "17. What part of the results or model confidence information was unclear or confusing? (optional)",
+                key="q_open_unclear",
+            )
+            responses["q_open_suggestions"] = st.text_area(
+                "18. What would make the results or recommendations easier to understand or use? (optional)",
+                key="q_open_suggestions",
+            )
 
             if st.session_state["study_mode"] == "G2":
                 st.subheader("Group 2 Only – Uncertainty & Explanations")

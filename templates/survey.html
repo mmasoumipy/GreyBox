@@ -226,19 +226,19 @@
         <div class="section-title">Open-Ended Questions</div>
         <div style="display: grid; gap: 20px;">
           <div class="form-group">
-            <label for="q_open_most_useful">What part of the assessment was most useful?</label>
-            <div class="field-hint">One or two sentences is enough.</div>
+            <label for="q_open_most_useful">16. Did the model confidence information change how you interpreted your stress result?</label>
+            <div class="field-hint">1-2 sentences.</div>
             <textarea name="q_open_most_useful" id="q_open_most_useful" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_most_useful', '') }}</textarea>
           </div>
           <div class="form-group">
-            <label for="q_open_unclear">What part was unclear?</label>
-            <div class="field-hint">Share anything confusing or missing.</div>
-            <textarea name="q_open_unclear" id="q_open_unclear" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_unclear', '') }}</textarea>
+            <label for="q_open_unclear">17. What part of the results or model confidence information was unclear or confusing?</label>
+            <div class="field-hint">Optional.</div>
+            <textarea name="q_open_unclear" id="q_open_unclear" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_unclear', '') }}</textarea>
           </div>
           <div class="form-group">
-            <label for="q_open_suggestions">Do you have suggestions for improvement?</label>
-            <div class="field-hint">Optional, brief suggestions welcome.</div>
-            <textarea name="q_open_suggestions" id="q_open_suggestions" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_suggestions', '') }}</textarea>
+            <label for="q_open_suggestions">18. What would make the results or recommendations easier to understand or use?</label>
+            <div class="field-hint">Optional.</div>
+            <textarea name="q_open_suggestions" id="q_open_suggestions" rows="4" style="min-height: 100px;">{{ defaults.get('q_open_suggestions', '') }}</textarea>
           </div>
         </div>
       </div>

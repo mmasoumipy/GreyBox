@@ -1324,9 +1324,9 @@ def survey_step(step: int):
         "q_intent_increase_activity": "Intentions: Increase physical activity in the next 7 days",
         "q_intent_stress_technique": "Intentions: Practice a stress-management technique in the next 7 days",
         "q_attention_check_feature": "Attention check",
-        "q_open_most_useful": "Most useful part",
-        "q_open_unclear": "Unclear part",
-        "q_open_suggestions": "Suggestions",
+        "q_open_most_useful": "Model confidence impact: Did it change how you interpreted your stress result?",
+        "q_open_unclear": "Unclear/confusing parts of results or model confidence information",
+        "q_open_suggestions": "Suggestions to make results or recommendations easier to understand or use",
         "q_g2_confidence_certainty": "G2: Confidence helped explain certainty",
         "q_g2_confidence_trust": "G2: Confidence helped calibrate trust",
         "q_g2_transparency": "G2: Confidence made the system feel transparent",
@@ -1374,6 +1374,11 @@ def survey_step(step: int):
             return redirect(url_for("survey_step", step=max(1, step - 1)))
 
         required_fields = list(step_fields.get(step, []))
+        if step == 3:
+            required_fields = [field for field in required_fields if field not in [
+                "q_open_unclear",
+                "q_open_suggestions",
+            ]]
         if step == 2:
             required_fields.extend([key for key, _ in LIKERT_CORE])
             required_fields.extend([key for key, _ in LIKERT_AI_IMPACT])
