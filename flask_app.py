@@ -1239,9 +1239,7 @@ LIKERT_AI_IMPACT: List[Tuple[str, str]] = [
 ]
 
 LIKERT_INTENTIONS: List[Tuple[str, str]] = [
-    ("q_intent_follow_ai_action", "I intend to follow at least one of the AI-recommended actions in the next 7 days."),
-    ("q_intent_increase_activity", "I intend to increase my physical activity in the next 7 days."),
-    ("q_intent_stress_technique", "I intend to practice at least one stress-management technique (e.g., breathing, journaling, meditation) in the next 7 days."),
+    ("q_intent_stress_technique", "I intend to practice at least one stress-management technique (e.g., breathing, journaling, meditation, exercise) in the next 7 days."),
 ]
 
 LIKERT_GAAIS: List[Tuple[str, str]] = [
@@ -1320,8 +1318,6 @@ def survey_step(step: int):
         "q_ai_trust_recs": "AI Impact: I trust the AI recommendations",
         "q_ai_understand_factors": "AI Impact: The results helped me understand factors affecting stress",
         "q_ai_recs_useful": "AI Impact: The AI recommendations would be useful",
-        "q_intent_follow_ai_action": "Intentions: Follow at least one AI-recommended action in the next 7 days",
-        "q_intent_increase_activity": "Intentions: Increase physical activity in the next 7 days",
         "q_intent_stress_technique": "Intentions: Practice a stress-management technique in the next 7 days",
         "q_attention_check_feature": "Attention check",
         "q_open_most_useful": "Model confidence impact: Did it change how you interpreted your stress result?",
