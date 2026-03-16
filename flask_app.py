@@ -1,4 +1,5 @@
 import io
+import base64
 import json
 import os
 import socket
@@ -32,6 +33,12 @@ app = Flask(__name__, template_folder="templates")
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")
 app.permanent_session_lifetime = timedelta(minutes=30)
 DATABASE_URL = os.environ.get("DATABASE_URL")
+ADMIN_BASIC_AUTH_USER = os.environ.get("ADMIN_BASIC_AUTH_USER", "GreyBox")
+ADMIN_BASIC_AUTH_PASS = os.environ.get("ADMIN_BASIC_AUTH_PASS", "M!na&greybox")
+ADMIN_CLEAN_CONFIRMATION = os.environ.get(
+    "ADMIN_CLEAN_CONFIRMATION",
+    "DELETE_ALL_STUDY_LOGS",
+)
 
 # ----------------------------
 # Data + model training (once)
@@ -799,6 +806,49 @@ def save_interaction_log():
     except Exception as exc:
         print(f"Failed to save log: {exc}")
 
+def _unauthorized_response():
+    return (
+        "Unauthorized",
+        401,
+        {"WWW-Authenticate": 'Basic realm="GreyBox Admin"'},
+    )
+
+def _check_basic_auth() -> bool:
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Basic "):
+        return False
+    try:
+        encoded = auth_header.split(" ", 1)[1].strip()
+        decoded = base64.b64decode(encoded).decode("utf-8")
+    except Exception:
+        return False
+    if ":" not in decoded:
+        return False
+    username, password = decoded.split(":", 1)
+    return username == ADMIN_BASIC_AUTH_USER and password == ADMIN_BASIC_AUTH_PASS
+
+def _clear_study_logs():
+    ACTIVE_LOGS.clear()
+    if DATABASE_URL:
+        init_db()
+        conn = get_db_conn()
+        if conn:
+            try:
+                with conn:
+                    with conn.cursor() as cur:
+                        cur.execute("TRUNCATE TABLE study_logs;")
+            except Exception as exc:
+                print(f"Failed to clean Postgres logs: {exc}")
+            finally:
+                conn.close()
+    log_dir = Path("study_logs")
+    if log_dir.exists():
+        for log_file in log_dir.glob("*.json"):
+            try:
+                log_file.unlink()
+            except Exception as exc:
+                print(f"Failed to remove log file {log_file}: {exc}")
+
 # ----------------------------
 # Flask hooks
 # ----------------------------
@@ -839,6 +889,28 @@ def reset_session():
     session.clear()
     flash("Session reset. Next request will assign a new participant ID.")
     return redirect(url_for("ethics"))
+
+@app.route("/admin/clean-db", methods=["GET", "POST"])
+def admin_clean_db():
+    if not _check_basic_auth():
+        return _unauthorized_response()
+    if request.method == "GET":
+        return (
+            "To clean the database, POST with confirm set to "
+            f"'{ADMIN_CLEAN_CONFIRMATION}'.",
+            200,
+        )
+    json_body = request.get_json(silent=True) or {}
+    confirm_value = request.form.get("confirm") or json_body.get("confirm")
+    if confirm_value != ADMIN_CLEAN_CONFIRMATION:
+        return (
+            "Confirmation required. Provide confirm="
+            f"'{ADMIN_CLEAN_CONFIRMATION}'.",
+            400,
+        )
+    _clear_study_logs()
+    session.clear()
+    return "Database cleaned.", 200
 
 @app.route("/ethics", methods=["GET", "POST"])
 def ethics():
