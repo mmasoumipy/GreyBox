@@ -1,16 +1,16 @@
-# Burnout Assessment System
+# Stress Assessment System
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 <!-- [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) -->
 [![Status: Active](https://img.shields.io/badge/Status-Active-brightgreen.svg)]()
 <!-- [![Last Updated](https://img.shields.io/badge/Last%20Updated-2025-blue.svg)]() -->
 
-A comprehensive machine learning system for assessing occupational burnout using ensemble learning, calibrated uncertainty quantification, and explainable AI. Includes a research-ready web interface for conducting two-group studies on AI transparency and user trust.
+A comprehensive machine learning system for assessing occupational stress using ensemble learning, calibrated uncertainty quantification, and explainable AI. Includes a research-ready web interface for conducting two-group studies on AI transparency and user trust.
 
 ## ✅ Project Goal And Approach
 
 **Goal**
-Provide a burnout estimate that is interpretable, calibrated, and honest about uncertainty, while enabling research on how explanation detail affects user trust.
+Provide a stress estimate that is interpretable, calibrated, and honest about uncertainty, while enabling research on how explanation detail affects user trust.
 
 **How We Do It**
 1. Collect 30 lifestyle and health features per participant.
@@ -442,8 +442,8 @@ joblib>=1.0.0
 
 ### SHAP Values
 
-- **Positive (Red)**: Increases burnout
-- **Negative (Green)**: Decreases burnout
+- **Positive (Red)**: Increases stress
+- **Negative (Green)**: Decreases stress
 - **Magnitude**: Strength of effect on prediction
 
 ### Conformal Prediction
@@ -460,7 +460,7 @@ If you use this system in research, please cite:
 
 ```bibtex
 @software{stress_risk_assessment_2024,
-  title={Burnout Assessment System: ML-Based Occupational Stress Prediction with Uncertainty Quantification},
+  title={Stress Assessment System: ML-Based Occupational Stress Prediction with Uncertainty Quantification},
   author={Your Name},
   year={2024},
   url={https://github.com/yourusername/stress-risk-assessment}

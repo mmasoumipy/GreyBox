@@ -34,7 +34,7 @@ try:
 except Exception:
     study_analysis = None
 
-st.set_page_config(page_title="Burnout Assessment", layout="wide")
+st.set_page_config(page_title="Stress Assessment", layout="wide")
 
 st.markdown(
     """
@@ -198,7 +198,7 @@ if "pre_info_answers" not in st.session_state:
 # ----------------------------
 # Study mode selection
 # ----------------------------
-st.title("🧠 Burnout Assessment System")
+st.title("🧠 Stress Assessment System")
 
 if not st.session_state["admin_mode"]:
     st.markdown(
@@ -588,7 +588,7 @@ def display_stress_plan(plan: Dict):
     }
     
     if st.session_state.get("study_mode") != "G1":
-        st.markdown("### 🎯 Your Burnout Factors")
+        st.markdown("### 🎯 Your Stress Factors")
         cols = st.columns(min(len(plan["risk_factors"]), 4))
         for i, factor in enumerate(plan["risk_factors"]):
             with cols[i % 4]:
@@ -876,11 +876,11 @@ def save_interaction_log():
 uploaded = None
 if st.session_state["admin_mode"]:
     st.sidebar.header("📊 Data Management")
-    uploaded = st.sidebar.file_uploader("Upload burnout dataset (CSV)", type=["csv"])
+    uploaded = st.sidebar.file_uploader("Upload stress dataset (CSV)", type=["csv"])
 
 @st.cache_data(show_spinner=True)
 def load_default_sample() -> pd.DataFrame | None:
-    """Load default Burnout Dataset."""
+    """Load default Stress Dataset."""
     try:
         df = pd.read_csv("data/stress_risk_data.csv")
         return df
@@ -895,7 +895,7 @@ if uploaded:
 else:
     df = load_default_sample()
     if df is not None and st.session_state["admin_mode"]:
-        st.sidebar.info("Using burnout dataset.")
+        st.sidebar.info("Using stress dataset.")
 
 if df is None:
     st.stop()
@@ -1429,7 +1429,7 @@ if st.session_state["current_page"] == "Assessment":
             social = st.slider("Social Interactions (count/week)", 0, 30, 8)
             screen_unlocks = st.number_input("Screen Unlocks/Day", 0, 500, 80)
         
-        submitted = st.form_submit_button("🔍 Assess Burnout", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("🔍 Assess Stress", type="primary", use_container_width=True)
 else:
     st.info("Switch to the Assessment page to adjust your inputs.")
 
@@ -1485,7 +1485,7 @@ if submitted:
 # ----------------------------
 if st.session_state.get("current_page") == "Results":
     st.markdown("---")
-    st.header("📊 Burnout Assessment Results")
+    st.header("📊 Stress Assessment Results")
     
 <<<<<<< HEAD
     pred = st.session_state["current_prediction"]
@@ -1493,7 +1493,7 @@ if st.session_state.get("current_page") == "Results":
     
     # G1: Basic display
     if st.session_state["study_mode"] == "G1":
-        with result_card("Your Burnout Score", tag="Assessment Result") as card:
+        with result_card("Your Stress Score", tag="Assessment Result") as card:
 =======
     if "current_prediction" not in st.session_state:
         st.info("Submit the assessment on the Assessment page to view results.")
@@ -1503,13 +1503,13 @@ if st.session_state.get("current_page") == "Results":
         
         # G1: Basic display
         if st.session_state["study_mode"] == "G1":
-            st.markdown("### Your Burnout Score")
+            st.markdown("### Your Stress Score")
             
 >>>>>>> c9289ae4efcedf1d4f9b6fe3310b818ddb7efadf
             fig = go.Figure(go.Indicator(
                 mode = "gauge+number",
                 value = risk * 100,
-                title = {'text': "Burnout Level (%)"},
+                title = {'text': "Stress Level (%)"},
                 gauge = {
                     'axis': {'range': [None, 100]},
                     'bar': {'color': "darkblue"},
@@ -1525,11 +1525,11 @@ if st.session_state.get("current_page") == "Results":
             
             if risk < 0.33:
 <<<<<<< HEAD
-                card.success("✅ Low Burnout")
+                card.success("✅ Low Stress")
             elif risk < 0.66:
-                card.warning("⚠️ Moderate Burnout")
+                card.warning("⚠️ Moderate Stress")
             else:
-                card.error("🚨 High Burnout")
+                card.error("🚨 High Stress")
     
     # G2: Enhanced display
     else:
@@ -1543,11 +1543,11 @@ if st.session_state.get("current_page") == "Results":
             aleatoric_std = pred["uncertainty"].get("aleatoric_std", 0.0)
             epistemic_std = pred["uncertainty"].get("epistemic_std", 0.0)
 
-            with result_card("Burnout with Uncertainty", tag="Assessment Result") as card:
+            with result_card("Stress with Uncertainty", tag="Assessment Result") as card:
                 fig = go.Figure(go.Indicator(
                     mode = "gauge+number",
                     value = risk * 100,
-                    title = {'text': "Burnout Level (%)"},
+                    title = {'text': "Stress Level (%)"},
                     gauge = {
                         'axis': {'range': [None, 100]},
                         'bar': {'color': "darkblue"},
@@ -1569,7 +1569,7 @@ if st.session_state.get("current_page") == "Results":
                 snapshot_cols[2].metric("Upper bound", f"{hi*100:.1f}%")
                 card.write(confidence["explanation"])
                 card.info(
-                    f"Out of 100 similar people, about 90 are expected to land between {lo*100:.0f}% and {hi*100:.0f}% burnout."
+                    f"Out of 100 similar people, about 90 are expected to land between {lo*100:.0f}% and {hi*100:.0f}% stress."
                 )
                 card.markdown("#### Why do we show a range?")
                 card.write(explain_uncertainty_sources(aleatoric_std, epistemic_std))
@@ -1659,18 +1659,18 @@ if st.session_state.get("current_page") == "Results":
                     lambda x: "Increases ↑" if x > 0 else "Decreases ↓"
                 )
 =======
-                st.success("✅ Low Burnout")
+                st.success("✅ Low Stress")
             elif risk < 0.66:
-                st.warning("⚠️ Moderate Burnout")
+                st.warning("⚠️ Moderate Stress")
             else:
-                st.error("🚨 High Burnout")
+                st.error("🚨 High Stress")
         
         # G2: Enhanced display
         else:
             col1, col2 = st.columns([1, 1])
             
             with col1:
-                st.markdown("### Burnout with Uncertainty")
+                st.markdown("### Stress with Uncertainty")
                 
                 lo = pred["uncertainty"]["lower"]
                 hi = pred["uncertainty"]["upper"]
@@ -1680,7 +1680,7 @@ if st.session_state.get("current_page") == "Results":
                 fig = go.Figure(go.Indicator(
                     mode = "gauge+number",
                     value = risk * 100,
-                    title = {'text': "Burnout Level (%)"},
+                    title = {'text': "Stress Level (%)"},
                     gauge = {
                         'axis': {'range': [None, 100]},
                         'bar': {'color': "darkblue"},
@@ -1699,7 +1699,7 @@ if st.session_state.get("current_page") == "Results":
                 st.write(confidence["explanation"])
                 st.caption(
                     f"In everyday terms: out of 100 similar people, about 90 are expected to land between "
-                    f"{lo*100:.0f}% and {hi*100:.0f}% burnout."
+                    f"{lo*100:.0f}% and {hi*100:.0f}% stress."
                 )
                 aleatoric_std = pred["uncertainty"].get("aleatoric_std", 0.0)
                 epistemic_std = pred["uncertainty"].get("epistemic_std", 0.0)
@@ -1952,7 +1952,7 @@ if st.session_state.get("current_page") == "Results":
 # ----------------------------
 if st.session_state.get("current_page") == "Survey":
     st.markdown("---")
-    st.header("📋 Burnout Assessment - User Study Questionnaire")
+    st.header("📋 Stress Assessment - User Study Questionnaire")
     st.caption("Please answer after reviewing your results/plan. Use 1 = strongly disagree to 5 = strongly agree unless noted.")
 
     if "current_prediction" not in st.session_state:
