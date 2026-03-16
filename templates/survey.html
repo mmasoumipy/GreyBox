@@ -225,11 +225,13 @@
       <div class="section-block">
         <div class="section-title">Open-Ended Questions</div>
         <div style="display: grid; gap: 20px;">
-          <div class="form-group">
-            <label for="q_open_most_useful">Did the model confidence information change how you interpreted your stress result?</label>
-            <div class="field-hint">1-2 sentences.</div>
-            <textarea name="q_open_most_useful" id="q_open_most_useful" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_most_useful', '') }}</textarea>
-          </div>
+          {% if group == "G2" %}
+            <div class="form-group">
+              <label for="q_open_most_useful">Did the model confidence information change how you interpreted your stress result?</label>
+              <div class="field-hint">1-2 sentences.</div>
+              <textarea name="q_open_most_useful" id="q_open_most_useful" rows="4" style="min-height: 100px;" required>{{ defaults.get('q_open_most_useful', '') }}</textarea>
+            </div>
+          {% endif %}
           <div class="form-group">
             <label for="q_open_unclear">Was there anything confusing about the AI model output?</label>
             <div class="field-hint">Optional.</div>

@@ -1347,11 +1347,12 @@ def survey_step(step: int):
         2: [],
         3: [
             "q_attention_check_feature",
-            "q_open_most_useful",
             "q_open_unclear",
             "q_open_suggestions",
         ],
     }
+    if group == "G2":
+        step_fields[3].insert(1, "q_open_most_useful")
     if request.method == "POST":
         if "back" in request.form:
             for field in step_fields.get(step, []):
