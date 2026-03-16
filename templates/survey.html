@@ -248,21 +248,45 @@
       {% if likert_g2 %}
         <div class="section-block">
           <div class="section-title">Group 2 Only – Uncertainty & Explanations</div>
-          <div class="q-grid slider-grid">
-          {% for key, label in likert_g2 %}
-            <div class="form-group">
-              <label>{{ label }}</label>
-              <div class="field-hint">1 = strongly disagree, 5 = strongly agree.</div>
-              <div data-slider>
-                <input type="range" name="{{ key }}" min="{{ likert_g2_min }}" max="{{ likert_g2_max }}" step="1" value="{{ defaults.get(key, likert_g2_default) }}" required>
-                <div class="slider-meta">
-                  <span class="slider-edge-left">{{ likert_g2_min }}</span>
-                  <span class="slider-current"></span>
-                  <span class="slider-edge-right">{{ likert_g2_max }}</span>
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
+          <p class="text-text" style="margin: 0 0 12px 0;">Answer using the Likely/Unlikely scale shown below.</p>
+          {% set g2_scale_labels = ["Extremely", "Quite", "Slightly", "Neither", "Slightly", "Quite", "Extremely"] %}
+          <div class="tam-table-wrap">
+            <table class="tam-table" aria-label="Group 2 Uncertainty & Explanations">
+              <thead>
+                <tr>
+                  <th class="tam-statement" rowspan="2"></th>
+                  <th colspan="3">Unlikely</th>
+                  <th rowspan="2">Neither</th>
+                  <th colspan="3">Likely</th>
+                </tr>
+                <tr>
+                  {% for label in g2_scale_labels %}
+                    {% if loop.index0 != 3 %}
+                      <th class="tam-subhead">{{ label }}</th>
+                    {% endif %}
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for key, label in likert_g2 %}
+                  <tr>
+                    <td class="tam-statement">{{ label }}</td>
+                    {% for score in range(1, 8) %}
+                      <td>
+                        <input
+                          type="radio"
+                          name="{{ key }}"
+                          value="{{ score }}"
+                          {% if defaults.get(key, likert_g2_default)|int == score %}checked{% endif %}
+                          {% if score == 1 %}required{% endif %}
+                          aria-label="{{ label }} - {{ g2_scale_labels[score - 1] }}"
+                        >
+                      </td>
+                    {% endfor %}
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       {% endif %}
