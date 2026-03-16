@@ -912,6 +912,29 @@ def admin_clean_db():
     session.clear()
     return "Database cleaned.", 200
 
+@app.route("/admin/clean-db-ui", methods=["GET", "POST"])
+def admin_clean_db_ui():
+    if not _check_basic_auth():
+        return _unauthorized_response()
+    message = None
+    status = "info"
+    if request.method == "POST":
+        confirm_value = request.form.get("confirm", "")
+        if confirm_value != ADMIN_CLEAN_CONFIRMATION:
+            message = f"Confirmation required. Enter: {ADMIN_CLEAN_CONFIRMATION}"
+            status = "error"
+        else:
+            _clear_study_logs()
+            session.clear()
+            message = "Database cleaned."
+            status = "success"
+    return render_template(
+        "admin_clean_db.html",
+        confirmation_token=ADMIN_CLEAN_CONFIRMATION,
+        message=message,
+        status=status,
+    )
+
 @app.route("/ethics", methods=["GET", "POST"])
 def ethics():
     if request.method == "POST":
