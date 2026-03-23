@@ -1700,10 +1700,38 @@ def plan_pdf():
         download_name="personalized_plan.pdf",
     )
 
-@app.route("/survey/thanks", methods=["GET"])
+@app.route("/survey/thanks", methods=["GET", "POST"])
 def survey_thanks():
     total_steps = 3
-    return render_template("survey_thanks.html", total_steps=total_steps)
+    email_status = ""
+    if request.method == "POST":
+        email = (request.form.get("giftcard_email") or "").strip()
+        if not email:
+            email_status = "Please enter a valid email."
+        else:
+            entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "email": email,
+            }
+            email_log = Path("study_logs") / "email_signups.json"
+            try:
+                email_log.parent.mkdir(exist_ok=True)
+                if email_log.exists():
+                    with open(email_log, "r") as f:
+                        existing = json.load(f) or []
+                else:
+                    existing = []
+                existing.append(entry)
+                with open(email_log, "w") as f:
+                    json.dump(existing, f, indent=2)
+                email_status = "Thanks! Your email has been recorded."
+            except Exception:
+                email_status = "Sorry, something went wrong. Please try again."
+    return render_template(
+        "survey_thanks.html",
+        total_steps=total_steps,
+        email_status=email_status,
+    )
 
 # ----------------------------
 # Run
