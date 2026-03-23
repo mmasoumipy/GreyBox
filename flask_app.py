@@ -655,6 +655,13 @@ def init_db():
                         payload JSONB
                     );
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS email_signups (
+                        id SERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        submitted_at TIMESTAMPTZ DEFAULT NOW()
+                    );
+                """)
         DB_INITIALIZED = True
     finally:
         conn.close()
@@ -1827,21 +1834,33 @@ def survey_thanks():
         if not email:
             email_status = "Please enter a valid email."
         else:
-            entry = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "email": email,
-            }
-            email_log = Path("study_logs") / "email_signups.json"
             try:
-                email_log.parent.mkdir(exist_ok=True)
-                if email_log.exists():
-                    with open(email_log, "r") as f:
-                        existing = json.load(f) or []
+                if DATABASE_URL:
+                    init_db()
+                    conn = get_db_conn()
+                    if conn:
+                        with conn:
+                            with conn.cursor() as cur:
+                                cur.execute(
+                                    "INSERT INTO email_signups (email) VALUES (%s);",
+                                    (email,)
+                                )
+                        conn.close()
                 else:
-                    existing = []
-                existing.append(entry)
-                with open(email_log, "w") as f:
-                    json.dump(existing, f, indent=2)
+                    entry = {
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "email": email,
+                    }
+                    email_log = Path("study_logs") / "email_signups.json"
+                    email_log.parent.mkdir(exist_ok=True)
+                    if email_log.exists():
+                        with open(email_log, "r") as f:
+                            existing = json.load(f) or []
+                    else:
+                        existing = []
+                    existing.append(entry)
+                    with open(email_log, "w") as f:
+                        json.dump(existing, f, indent=2)
                 email_status = "Thanks! Your email has been recorded."
             except Exception:
                 email_status = "Sorry, something went wrong. Please try again."
