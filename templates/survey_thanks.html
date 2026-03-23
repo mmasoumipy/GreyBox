@@ -8,9 +8,11 @@
     <form method="post" action="{{ url_for('survey_thanks') }}">
       <div class="form-group" style="max-width: 420px;">
         <label for="giftcard_email">Email</label>
-        <input type="email" id="giftcard_email" name="giftcard_email" placeholder="you@example.com" required>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <input type="email" id="giftcard_email" name="giftcard_email" placeholder="you@example.com" required style="flex: 1; min-width: 0;">
+          <button type="submit">Submit Email</button>
+        </div>
       </div>
-      <button type="submit">Submit Email</button>
       {% if email_status %}
         <div class="field-hint" style="margin-top:8px;">{{ email_status }}</div>
       {% endif %}
