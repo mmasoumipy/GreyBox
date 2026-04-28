@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Export CSV</title>
+    <style>
+      :root {
+        --bg: #f5f3ef;
+        --card: #ffffff;
+        --text: #1b1b1b;
+        --muted: #6a6a6a;
+        --accent: #2f5b8f;
+        --border: #e3e0db;
+        --ok: #1f7a3a;
+      }
+      body {
+        font-family: "Georgia", "Times New Roman", serif;
+        background: radial-gradient(circle at 20% 20%, #eef4ff, var(--bg));
+        color: var(--text);
+        margin: 0;
+        padding: 40px 16px;
+      }
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        padding: 28px;
+        border-radius: 12px;
+      }
+      h1 {
+        margin: 0 0 8px 0;
+        font-size: 28px;
+        letter-spacing: 0.2px;
+      }
+      p {
+        margin: 0 0 16px 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .meta {
+        padding: 10px 12px;
+        background: #f2f5fb;
+        border-radius: 8px;
+        color: var(--text);
+        font-weight: 600;
+      }
+      .actions {
+        margin-top: 18px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        padding: 12px 18px;
+        font-size: 16px;
+        border-radius: 8px;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .secondary {
+        background: #f2ede7;
+        color: var(--text);
+      }
+      code {
+        background: #f2ede7;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Export Study Logs</h1>
+        <p>
+          Download all study log records as a single CSV file. This includes the raw JSON payload
+          for each event.
+        </p>
+        <div class="meta">
+          Records found: {{ record_count }} (source: {{ record_source }})
+        </div>
+        <div class="actions">
+          <a class="button" href="{{ url_for('admin_export_csv') }}">Download CSV</a>
+          <a class="button secondary" href="{{ url_for('admin_clean_db_ui') }}">Clean Database</a>
+        </div>
+        <p style="margin-top: 16px;">
+          The CSV columns are: <code>id</code>, <code>user_id</code>, <code>group_name</code>,
+          <code>event_type</code>, <code>event_time</code>, <code>payload</code>.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

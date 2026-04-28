@@ -1,4 +1,5 @@
 import io
+import csv
 import base64
 import json
 import os
@@ -15,7 +16,7 @@ import numpy as np
 import pandas as pd
 import lightgbm as lgb
 import shap
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, Response
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.pdfgen import canvas
@@ -654,6 +655,13 @@ def init_db():
                         payload JSONB
                     );
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS email_signups (
+                        id SERIAL PRIMARY KEY,
+                        email TEXT NOT NULL,
+                        submitted_at TIMESTAMPTZ DEFAULT NOW()
+                    );
+                """)
         DB_INITIALIZED = True
     finally:
         conn.close()
@@ -849,6 +857,98 @@ def _clear_study_logs():
             except Exception as exc:
                 print(f"Failed to remove log file {log_file}: {exc}")
 
+def _serialize_payload(payload) -> str:
+    try:
+        return json.dumps(payload, ensure_ascii=True)
+    except Exception:
+        try:
+            return json.dumps({"raw": str(payload)}, ensure_ascii=True)
+        except Exception:
+            return "{}"
+
+def _collect_study_logs() -> List[Dict]:
+    if DATABASE_URL:
+        init_db()
+        conn = get_db_conn()
+        if conn:
+            try:
+                with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+                    cur.execute("""
+                        SELECT id, user_id, group_name, event_type, event_time, payload
+                        FROM study_logs
+                        ORDER BY id ASC;
+                    """)
+                    return [dict(row) for row in cur.fetchall()]
+            except Exception as exc:
+                print(f"Failed to read Postgres logs: {exc}")
+            finally:
+                conn.close()
+    records: List[Dict] = []
+    log_dir = Path("study_logs")
+    if log_dir.exists():
+        for log_file in sorted(log_dir.glob("*.json")):
+            try:
+                with open(log_file, "r") as f:
+                    entries = json.load(f)
+                for entry in entries:
+                    records.append({
+                        "id": None,
+                        "user_id": entry.get("user_id"),
+                        "group_name": entry.get("group"),
+                        "event_type": entry.get("event"),
+                        "event_time": entry.get("timestamp") or entry.get("event_time"),
+                        "payload": entry,
+                    })
+            except Exception as exc:
+                print(f"Failed to read log file {log_file}: {exc}")
+    return records
+
+def _count_study_logs() -> Tuple[int, str]:
+    if DATABASE_URL:
+        init_db()
+        conn = get_db_conn()
+        if conn:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM study_logs;")
+                    row = cur.fetchone()
+                    return int(row[0] or 0), "database"
+            except Exception as exc:
+                print(f"Failed to count Postgres logs: {exc}")
+            finally:
+                conn.close()
+    count = 0
+    log_dir = Path("study_logs")
+    if log_dir.exists():
+        for log_file in log_dir.glob("*.json"):
+            try:
+                with open(log_file, "r") as f:
+                    entries = json.load(f)
+                count += len(entries)
+            except Exception as exc:
+                print(f"Failed to count log file {log_file}: {exc}")
+    return count, "local files"
+
+def _render_study_logs_csv(records: List[Dict]) -> str:
+    headers = ["id", "user_id", "group_name", "event_type", "event_time", "payload"]
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(headers)
+    for row in records:
+        event_time = row.get("event_time")
+        if isinstance(event_time, datetime):
+            event_time = event_time.isoformat()
+        payload = _serialize_payload(row.get("payload"))
+        writer.writerow([
+            row.get("id"),
+            row.get("user_id"),
+            row.get("group_name"),
+            row.get("event_type"),
+            event_time,
+            payload,
+        ])
+    return output.getvalue()
+
 # ----------------------------
 # Flask hooks
 # ----------------------------
@@ -933,6 +1033,31 @@ def admin_clean_db_ui():
         confirmation_token=ADMIN_CLEAN_CONFIRMATION,
         message=message,
         status=status,
+    )
+
+@app.route("/admin/export-csv", methods=["GET"])
+def admin_export_csv():
+    if not _check_basic_auth():
+        return _unauthorized_response()
+    records = _collect_study_logs()
+    csv_data = _render_study_logs_csv(records)
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"study_logs_{timestamp}.csv"
+    return Response(
+        csv_data,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+@app.route("/admin/export-csv-ui", methods=["GET"])
+def admin_export_csv_ui():
+    if not _check_basic_auth():
+        return _unauthorized_response()
+    count, source = _count_study_logs()
+    return render_template(
+        "admin_export_csv.html",
+        record_count=count,
+        record_source=source,
     )
 
 @app.route("/ethics", methods=["GET", "POST"])
@@ -1709,21 +1834,33 @@ def survey_thanks():
         if not email:
             email_status = "Please enter a valid email."
         else:
-            entry = {
-                "timestamp": datetime.utcnow().isoformat(),
-                "email": email,
-            }
-            email_log = Path("study_logs") / "email_signups.json"
             try:
-                email_log.parent.mkdir(exist_ok=True)
-                if email_log.exists():
-                    with open(email_log, "r") as f:
-                        existing = json.load(f) or []
+                if DATABASE_URL:
+                    init_db()
+                    conn = get_db_conn()
+                    if conn:
+                        with conn:
+                            with conn.cursor() as cur:
+                                cur.execute(
+                                    "INSERT INTO email_signups (email) VALUES (%s);",
+                                    (email,)
+                                )
+                        conn.close()
                 else:
-                    existing = []
-                existing.append(entry)
-                with open(email_log, "w") as f:
-                    json.dump(existing, f, indent=2)
+                    entry = {
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "email": email,
+                    }
+                    email_log = Path("study_logs") / "email_signups.json"
+                    email_log.parent.mkdir(exist_ok=True)
+                    if email_log.exists():
+                        with open(email_log, "r") as f:
+                            existing = json.load(f) or []
+                    else:
+                        existing = []
+                    existing.append(entry)
+                    with open(email_log, "w") as f:
+                        json.dump(existing, f, indent=2)
                 email_status = "Thanks! Your email has been recorded."
             except Exception:
                 email_status = "Sorry, something went wrong. Please try again."

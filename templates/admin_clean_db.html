@@ -114,6 +114,11 @@
             <button type="submit">Clean Database</button>
           </div>
         </form>
+        <div class="actions">
+          <a href="{{ url_for('admin_export_csv_ui') }}" style="text-decoration: none;">
+            <button type="button" style="background: #2f5b8f;">Export CSV</button>
+          </a>
+        </div>
         {% if message %}
         <div class="status {{ status }}">{{ message }}</div>
         {% endif %}
