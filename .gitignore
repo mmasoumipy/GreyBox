@@ -212,5 +212,7 @@ data_diagnostic.png
 generate_realistic_dataset.py
 /data/mental_health_data_realistic.csv
 
-study_logs/*
-study_outputs/
+study_logs/
+study_outputs/*
+!study_outputs/analysis.ipynb
+
