@@ -729,7 +729,10 @@ def ensure_user_session():
     if "user_id" not in session:
         next_id = load_last_user_id_from_logs() + 1
         session["user_id"] = str(next_id)
-        group = "G2" if next_id % 2 == 0 else "G1"
+        rand_val = float(np.random.random())
+        print(f"Assigning user_id={session['user_id']} to group based on rand_val={rand_val:.4f}")
+        group = "G1" if rand_val < 0.5 else "G2"
+        session["rand_val"] = rand_val
         session["group"] = group
         session["study_mode"] = group
         get_log().append({
@@ -737,7 +740,8 @@ def ensure_user_session():
             "event": "session_start",
             "user_id": session["user_id"],
             "group": group,
-            "assignment": "auto_counter"
+            "assignment": "random",
+            "rand_val": rand_val
         })
 
 def track_page_duration(current_page: str):
@@ -755,6 +759,7 @@ def track_page_duration(current_page: str):
                 "duration_seconds": duration_seconds,
                 "user_id": session.get("user_id"),
                 "group": session.get("group"),
+                "rand_val": session.get("rand_val"),
             })
         except Exception:
             pass
